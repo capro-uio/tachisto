@@ -19,10 +19,7 @@
       "@id": "https://orcid.org/0000-0002-5756-0223",
       "givenName": "Athanasia M.",
       "familyName": "Mowinckel",
-      "affiliation": {
-        "@type": "Organization",
-        "name": "Center for Lifespan Changes in Brain and Cognition (LCBC), University of Oslo"
-      }
+      "affiliation": { "@type": "Organization", "name": "CAPRO, University of Oslo" }
     }
   ],
   "version": "0.0.2",
