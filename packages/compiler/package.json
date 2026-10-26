@@ -1,12 +1,42 @@
 {
   "name": "@tachisto/compiler",
   "version": "0.0.2",
-  "private": true,
+  "description": "Compiles a declarative Tachisto spec to readable jsPsych source and a runnable HTML experiment.",
+  "keywords": [
+    "jsPsych",
+    "psychology",
+    "behavioural experiments",
+    "compiler",
+    "no-code"
+  ],
+  "homepage": "https://www.capro.dev/tachisto/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/capro-uio/tachisto.git",
+    "directory": "packages/compiler"
+  },
+  "bugs": {
+    "url": "https://github.com/capro-uio/tachisto/issues"
+  },
   "license": "MIT",
   "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
   "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./spec-schema.json": "./spec-schema.json"
+  },
   "bin": {
     "tachisto": "src/cli.ts"
+  },
+  "files": [
+    "src",
+    "spec-schema.json"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "test": "vitest run",
@@ -15,7 +45,7 @@
     "version": "npm run codemeta"
   },
   "dependencies": {
-    "@tachisto/schemas": "*",
+    "@tachisto/schemas": "^0.0.2",
     "acorn": "^8.19.0",
     "prettier": "^3.9.10"
   },

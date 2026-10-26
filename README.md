@@ -59,7 +59,7 @@ npm run coverage         # the same, reporting coverage of the compiler, schemas
 npm run typecheck
 npm run schemas          # regenerate packages/schemas/plugin-schemas.json, print coverage
 npm run spec-schema      # regenerate packages/compiler/spec-schema.json
-node --experimental-strip-types packages/compiler/src/cli.ts compile examples/flanker.json
+node packages/compiler/src/cli.ts compile examples/flanker.json
 ```
 
 The acceptance test for the UI builds `examples/flanker.json` by clicking through the app and

@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { format, resolveConfig } from "prettier";
 import { fileURLToPath } from "node:url";
-import { extractBundle } from "@tachisto/schemas";
+import { extractBundle, loadBundle } from "@tachisto/schemas";
 import manifest from "../package.json" with { type: "json" };
 import { citationCff, toYaml, zenodoMetadata } from "./citation.ts";
 import { updateCodemeta, type Codemeta, type PackageManifest } from "./codemeta.ts";
@@ -30,9 +30,11 @@ if (!["compile", "schema", "codemeta"].includes(command) || (command === "compil
   process.exit(2);
 }
 
-const { bundle: schemas, report } = await extractBundle();
-
+// `schema` and `codemeta` regenerate files from the plugins installed here, so they extract
+// afresh. Compiling reads the schemas shipped with the package instead, which is all an installed
+// copy has: extraction imports all 49 plugin packages, and no consumer should need them.
 if (command === "schema") {
+  const { bundle: schemas, report } = await extractBundle();
   const outputPath = optionValue(
     "out",
     fileURLToPath(new URL("../spec-schema.json", import.meta.url)),
@@ -44,6 +46,7 @@ if (command === "schema") {
 }
 
 if (command === "codemeta") {
+  const { report } = await extractBundle();
   const outputPath = optionValue(
     "out",
     fileURLToPath(new URL("../../../codemeta.json", import.meta.url)),
@@ -75,6 +78,7 @@ if (command === "codemeta") {
   process.exit(0);
 }
 
+const schemas = loadBundle();
 const spec = JSON.parse(readFileSync(specPath, "utf8")) as Spec;
 
 try {

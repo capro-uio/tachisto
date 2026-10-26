@@ -1,3 +1,4 @@
+export { loadBundle } from "./bundle.ts";
 export { extractBundle } from "./extract.ts";
 export { BROWSER_BUNDLE, JSPSYCH_STYLESHEET, integrityOf } from "./files.ts";
 export { PLUGIN_LABELS } from "./titles.ts";
