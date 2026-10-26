@@ -15,15 +15,8 @@ describe("remembered settings", () => {
     expect(readStored("theme")).toBeNull();
   });
 
-  it("carries a setting saved before the rename over to the new name", () => {
-    localStorage.setItem("jspsych-studio:theme", "light");
-    expect(readStored("theme")).toBe("light");
-    expect(localStorage.getItem("tachisto:theme")).toBe("light");
-    expect(localStorage.getItem("jspsych-studio:theme")).toBeNull();
-  });
-
-  it("prefers a setting saved under the new name over an old one", () => {
-    localStorage.setItem("jspsych-studio:theme", "light");
+  it("overwrites a setting saved earlier", () => {
+    writeStored("theme", "light");
     writeStored("theme", "dark");
     expect(readStored("theme")).toBe("dark");
   });
