@@ -2,6 +2,7 @@
   "@context": "https://w3id.org/codemeta/3.0",
   "@type": "SoftwareSourceCode",
   "name": "Tachisto",
+  "identifier": "https://doi.org/10.5281/zenodo.23669791",
   "description": "A no-code builder for jsPsych experiments: author in the browser, export readable jsPsych you can host anywhere.",
   "codeRepository": "https://github.com/capro-uio/tachisto",
   "issueTracker": "https://github.com/capro-uio/tachisto/issues",

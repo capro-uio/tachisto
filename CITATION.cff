@@ -8,6 +8,7 @@ authors:
     family-names: "Mowinckel"
     orcid: "https://orcid.org/0000-0002-5756-0223"
     affiliation: "CAPRO, University of Oslo"
+doi: "10.5281/zenodo.23669791"
 version: "0.0.2"
 date-released: "2026-10-26"
 license: "MIT"
