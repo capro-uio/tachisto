@@ -1,5 +1,8 @@
 # Tachisto
 
+[![CI](https://github.com/capro-uio/tachisto/actions/workflows/ci.yml/badge.svg)](https://github.com/capro-uio/tachisto/actions/workflows/ci.yml)
+[![Built with Claude](https://img.shields.io/badge/built%20with-Claude-D97757?logo=claude&logoColor=white)](https://claude.com/claude-code)
+
 A no-code builder for [jsPsych](https://www.jspsych.org) experiments. Researchers assemble a study
 in a UI; the tool compiles it to readable, correct jsPsych source they can host anywhere.
 
@@ -10,8 +13,8 @@ performance or on an answer, a psychophysics canvas step whose objects you drag 
 preview of the whole experiment or a single step, a choice of where results go, a guided tour of the
 builder, and export to a single HTML file or a zipped project. Participants recruited on Prolific,
 SONA or CloudResearch Connect are identified by the platform's id and sent back to it when done.
-Tasks can run in a counterbalanced order. There is no hosting or consent flow yet. 0.0.1 is the
-first release, and every export names the version that built it.
+Tasks can run in a counterbalanced order. There is no hosting or consent flow yet. Every export names the
+version that built it.
 
 **Try it:** <https://www.capro.dev/tachisto/app/> — nothing to install, and the examples
 open a working experiment in one click. The website at <https://www.capro.dev/tachisto/> explains

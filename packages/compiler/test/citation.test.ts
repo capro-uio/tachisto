@@ -19,6 +19,7 @@ const codemeta: Codemeta = {
       "@id": "https://orcid.org/0000-0002-5756-0223",
       givenName: "Athanasia Mo",
       familyName: "Mowinckel",
+      affiliation: { "@type": "Organization", name: "University of Oslo" },
     },
     { "@type": "Person", givenName: "Ada", familyName: "Lovelace" },
     { "@type": "Organization", name: "CAPRO" },
@@ -31,12 +32,13 @@ const codemeta: Codemeta = {
 };
 
 describe("CITATION.cff from codemeta", () => {
-  it("names each author as codemeta does, with an ORCID only where there is one", () => {
+  it("names each author as codemeta does, with an ORCID and affiliation only where there is one", () => {
     expect(citationCff(codemeta).authors).toEqual([
       {
         "given-names": "Athanasia Mo",
         "family-names": "Mowinckel",
         orcid: "https://orcid.org/0000-0002-5756-0223",
+        affiliation: "University of Oslo",
       },
       { "given-names": "Ada", "family-names": "Lovelace" },
       { name: "CAPRO" },
@@ -65,9 +67,13 @@ describe("CITATION.cff from codemeta", () => {
 });
 
 describe("Zenodo metadata from codemeta", () => {
-  it("names creators as family, given, with a bare ORCID only where there is one", () => {
+  it("names creators as family, given, with a bare ORCID and affiliation only where there is one", () => {
     expect(zenodoMetadata(codemeta).creators).toEqual([
-      { name: "Mowinckel, Athanasia Mo", orcid: "0000-0002-5756-0223" },
+      {
+        name: "Mowinckel, Athanasia Mo",
+        orcid: "0000-0002-5756-0223",
+        affiliation: "University of Oslo",
+      },
       { name: "Lovelace, Ada" },
       { name: "CAPRO" },
     ]);

@@ -2,11 +2,17 @@
   "upload_type": "software",
   "title": "Tachisto",
   "description": "A no-code builder for jsPsych experiments: author in the browser, export readable jsPsych you can host anywhere.",
-  "creators": [{ "name": "Mowinckel, Athanasia Mo", "orcid": "0000-0002-5756-0223" }],
+  "creators": [
+    {
+      "name": "Mowinckel, Athanasia M.",
+      "orcid": "0000-0002-5756-0223",
+      "affiliation": "CAPRO, University of Oslo"
+    }
+  ],
   "access_right": "open",
   "license": "mit",
   "keywords": ["jsPsych", "psychology", "behavioural experiments", "online experiments", "no-code"],
-  "version": "0.0.1",
+  "version": "0.0.2",
   "related_identifiers": [
     {
       "identifier": "https://www.capro.dev/tachisto/",
