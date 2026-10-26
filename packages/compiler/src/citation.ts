@@ -14,6 +14,16 @@ interface CodemetaRequirement {
 }
 
 const ORCID_PREFIX = "https://orcid.org/";
+const DOI_PREFIX = "https://doi.org/";
+
+/**
+ * The bare DOI codemeta's identifier names, if it names one. Zenodo mints the DOI itself, so
+ * .zenodo.json must not claim one; only CITATION.cff repeats it.
+ */
+function doi(codemeta: Codemeta) {
+  const identifier = codemeta.identifier as string | undefined;
+  return identifier?.startsWith(DOI_PREFIX) ? identifier.slice(DOI_PREFIX.length) : undefined;
+}
 
 function authors(codemeta: Codemeta) {
   return ((codemeta.author ?? []) as CodemetaAgent[]).map((author) => ({
@@ -53,6 +63,7 @@ export function citationCff(codemeta: Codemeta) {
             },
       ),
     ),
+    doi: doi(codemeta),
     version: codemeta.version as string | undefined,
     "date-released": codemeta.dateModified as string | undefined,
     license: spdxLicense(codemeta),

@@ -8,6 +8,7 @@ const readRoot = (file: string) =>
 
 const codemeta: Codemeta = {
   name: "Tachisto",
+  identifier: "https://doi.org/10.5281/zenodo.23669791",
   description: "A builder.",
   codeRepository: "https://github.com/capro-uio/tachisto",
   url: "https://www.capro.dev/tachisto/",
@@ -51,6 +52,7 @@ describe("CITATION.cff from codemeta", () => {
       type: "software",
       title: "Tachisto",
       abstract: "A builder.",
+      doi: "10.5281/zenodo.23669791",
       version: "0.0.2",
       "date-released": "2026-11-01",
       license: "MIT",
@@ -63,6 +65,25 @@ describe("CITATION.cff from codemeta", () => {
   it("leaves out what codemeta does not say", () => {
     const cff = citationCff({ name: "Tachisto", author: [] });
     expect(Object.keys(cff)).toEqual(["cff-version", "message", "type", "title", "authors"]);
+  });
+});
+
+describe("the DOI in CITATION.cff", () => {
+  it("is the bare DOI the codemeta identifier names", () => {
+    expect(citationCff(codemeta).doi).toBe("10.5281/zenodo.23669791");
+  });
+
+  it("is left out when codemeta names no DOI", () => {
+    expect(citationCff({ name: "Tachisto", author: [] })).not.toHaveProperty("doi");
+  });
+
+  it("is left out when the identifier is not a DOI", () => {
+    const other = { ...codemeta, identifier: "https://example.org/tachisto" };
+    expect(citationCff(other)).not.toHaveProperty("doi");
+  });
+
+  it("stays out of .zenodo.json, which Zenodo mints a DOI for itself", () => {
+    expect(zenodoMetadata(codemeta)).not.toHaveProperty("doi");
   });
 });
 

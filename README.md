@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/capro-uio/tachisto/actions/workflows/ci.yml/badge.svg)](https://github.com/capro-uio/tachisto/actions/workflows/ci.yml)
 [![Built with Claude](https://img.shields.io/badge/built%20with-Claude-D97757?logo=claude&logoColor=white)](https://claude.com/claude-code)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23669791.svg)](https://doi.org/10.5281/zenodo.23669791)
 
 A no-code builder for [jsPsych](https://www.jspsych.org) experiments. Researchers assemble a study
 in a UI; the tool compiles it to readable, correct jsPsych source they can host anywhere.
@@ -382,9 +383,11 @@ frame has nothing of yours to send.
 ## Citing Tachisto
 
 GitHub's "Cite this repository" button, in the sidebar of the repository page, gives a citation
-in APA or BibTeX from [`CITATION.cff`](CITATION.cff). A DOI will follow with the first release
-archived on Zenodo, and each release after that will have its own, so a methods section can name
-the exact Tachisto that built an experiment.
+in APA or BibTeX from [`CITATION.cff`](CITATION.cff).
+
+Every release is archived on Zenodo. [10.5281/zenodo.23669791](https://doi.org/10.5281/zenodo.23669791)
+always resolves to the latest one; each release also has a DOI of its own, so a methods section can
+name the exact Tachisto that built an experiment.
 
 ## License
 
