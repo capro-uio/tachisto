@@ -40,7 +40,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "node --experimental-strip-types src/cli.ts",
+    "build": "node src/cli.ts",
     "test": "vitest run"
   },
   "devDependencies": {

@@ -40,8 +40,8 @@
   },
   "scripts": {
     "test": "vitest run",
-    "spec-schema": "node --experimental-strip-types src/cli.ts schema",
-    "codemeta": "node --experimental-strip-types src/cli.ts codemeta",
+    "spec-schema": "node src/cli.ts schema",
+    "codemeta": "node src/cli.ts codemeta",
     "version": "npm run codemeta"
   },
   "dependencies": {
