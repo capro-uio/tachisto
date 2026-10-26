@@ -17,13 +17,17 @@
     {
       "@type": "Person",
       "@id": "https://orcid.org/0000-0002-5756-0223",
-      "givenName": "Athanasia Mo",
-      "familyName": "Mowinckel"
+      "givenName": "Athanasia M.",
+      "familyName": "Mowinckel",
+      "affiliation": {
+        "@type": "Organization",
+        "name": "Center for Lifespan Changes in Brain and Cognition (LCBC), University of Oslo"
+      }
     }
   ],
-  "version": "0.0.1",
-  "dateModified": "2026-10-16",
-  "downloadUrl": "https://github.com/capro-uio/tachisto/releases/tag/v0.0.1",
+  "version": "0.0.2",
+  "dateModified": "2026-10-26",
+  "downloadUrl": "https://github.com/capro-uio/tachisto/releases/tag/v0.0.2",
   "softwareRequirements": [
     {
       "@type": "SoftwareApplication",

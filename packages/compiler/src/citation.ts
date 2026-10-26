@@ -5,6 +5,7 @@ interface CodemetaAgent {
   givenName?: string;
   familyName?: string;
   name?: string;
+  affiliation?: { name?: string };
 }
 
 interface CodemetaRequirement {
@@ -20,6 +21,7 @@ function authors(codemeta: Codemeta) {
     familyName: author.familyName,
     name: author.name,
     orcid: author["@id"]?.startsWith(ORCID_PREFIX) ? author["@id"] : undefined,
+    affiliation: author.affiliation?.name,
   }));
 }
 
@@ -42,11 +44,12 @@ export function citationCff(codemeta: Codemeta) {
     authors: authors(codemeta).map((author) =>
       withoutMissing(
         author.familyName === undefined
-          ? { name: author.name, orcid: author.orcid }
+          ? { name: author.name, orcid: author.orcid, affiliation: author.affiliation }
           : {
               "given-names": author.givenName,
               "family-names": author.familyName,
               orcid: author.orcid,
+              affiliation: author.affiliation,
             },
       ),
     ),
@@ -78,6 +81,7 @@ export function zenodoMetadata(codemeta: Codemeta) {
             ? author.name
             : [author.familyName, author.givenName].filter(Boolean).join(", "),
         orcid: author.orcid?.slice(ORCID_PREFIX.length),
+        affiliation: author.affiliation,
       }),
     ),
     access_right: "open",
