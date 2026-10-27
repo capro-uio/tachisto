@@ -1,0 +1,46 @@
+{
+  "name": "@tachisto/cli",
+  "version": "0.0.2",
+  "description": "Validate and compile Tachisto experiment specs from the command line.",
+  "keywords": [
+    "jsPsych",
+    "psychology",
+    "behavioural experiments",
+    "cli",
+    "no-code"
+  ],
+  "homepage": "https://www.capro.dev/tachisto/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/capro-uio/tachisto.git",
+    "directory": "packages/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/capro-uio/tachisto/issues"
+  },
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "tachisto": "src/main.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@tachisto/compiler": "^0.0.2",
+    "@tachisto/schemas": "^0.0.2"
+  }
+}
