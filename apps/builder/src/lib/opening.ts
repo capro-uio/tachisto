@@ -50,7 +50,8 @@ export function linkTo(url: string, page: { origin: string; pathname: string }) 
   return link.href;
 }
 
-const HTTPS = /^https:\/\//i;
+/** What counts as an address to fetch rather than a spec to read. */
+export const HTTPS = /^https:\/\//i;
 const SOME_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
 
 /**
@@ -61,9 +62,9 @@ export async function specFromPasted(text: string, fetcher: typeof fetch = fetch
   const pasted = text.trim();
   if (pasted === "") throw new Error("there is nothing here to open");
   if (HTTPS.test(pasted)) return await specFrom(pasted, fetcher);
-  if (SOME_SCHEME.test(pasted) && !pasted.startsWith("{")) {
-    throw new Error("only https addresses are opened");
-  }
+  // SOME_SCHEME is anchored and needs a leading letter, so a pasted spec never matches it.
+  if (SOME_SCHEME.test(pasted)) throw new Error("only https addresses are opened");
+  if (pasted.length > MAXIMUM_SPEC_LENGTH) throw new Error("it is larger than a spec can be");
   return parseSpec(pasted);
 }
 

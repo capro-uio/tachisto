@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { specFromPasted } from "./opening.ts";
+  import { HTTPS, specFromPasted } from "./opening.ts";
   import { loadSpec } from "./project.svelte.ts";
 
-  const { onopened, onclose }: { onopened: (url?: string) => void; onclose: () => void } = $props();
+  const { onopened, onclose }: { onopened: () => void; onclose: () => void } = $props();
 
   let pasted = $state("");
   let problem = $state("");
@@ -15,12 +15,17 @@
 
   async function open() {
     opening = true;
+    const text = pasted.trim();
     try {
-      const text = pasted.trim();
-      loadSpec(await specFromPasted(text));
-      onopened(text.startsWith("https://") ? text : undefined);
+      const spec = await specFromPasted(text);
+      // Fetching takes a moment, and the dialog can be dismissed while it does. Loading the spec
+      // anyway would put a study someone just cancelled in front of them, over whatever was open.
+      if (!sheet?.open) return;
+      loadSpec(spec, HTTPS.test(text) ? text : undefined);
+      onopened();
     } catch (error) {
-      problem = `That is not a spec this builder can open: ${(error as Error).message}`;
+      if (!sheet?.open) return;
+      problem = `Could not open that: ${(error as Error).message}`;
     } finally {
       opening = false;
     }
@@ -33,7 +38,7 @@
   aria-labelledby="open-spec-title"
   data-testid="open-spec"
   {onclose}
-  onclick={(event) => event.target === sheet && sheet.close()}
+  onclick={(event) => !opening && event.target === sheet && sheet.close()}
 >
   <h2 id="open-spec-title">Open a spec someone sent you</h2>
   <p class="muted">
@@ -43,6 +48,7 @@
   <textarea
     bind:value={pasted}
     data-testid="open-spec-text"
+    autofocus
     aria-label="the spec, or its address"
     spellcheck="false"
     placeholder={'{ "name": "my-experiment", … }  or  https://…/study.json'}></textarea>
@@ -50,7 +56,9 @@
     <p class="notice" data-testid="open-spec-problem" role="alert">{problem}</p>
   {/if}
   <div class="actions">
-    <button data-testid="open-spec-cancel" onclick={() => sheet?.close()}>Cancel</button>
+    <button data-testid="open-spec-cancel" disabled={opening} onclick={() => sheet?.close()}
+      >Cancel</button
+    >
     <span class="spacer"></span>
     <button
       class="primary"

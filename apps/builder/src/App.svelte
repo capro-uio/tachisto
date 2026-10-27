@@ -41,11 +41,10 @@
   let importError = $state("");
   let downloadError = $state("");
 
-  // Where the open spec came from, when it came from an address, so the link can be passed on.
-  let sourceUrl = $state<string | undefined>();
   let pasting = $state(false);
   let opening = $state(false);
   let copied = $state(false);
+  let copyProblem = $state("");
 
   // A link can carry a spec from anyone. Opening it is the reader's choice to make, not the
   // link's, because a spec holds code that runs for every participant the study reaches.
@@ -55,17 +54,22 @@
 
   async function acceptInvitation() {
     if (!invitation) return;
-    const { url } = invitation;
+    if (!confirmDiscard()) return;
+    const accepted = invitation;
     opening = true;
     try {
-      loadSpec(await specFrom(url));
-      sourceUrl = url;
+      const spec = await specFrom(accepted.url);
+      // Fetching takes a moment, and "Not now" is still there while it does. Loading the spec
+      // after someone declined it would make the asking a formality.
+      if (invitation !== accepted) return;
+      loadSpec(spec, accepted.url);
       invitation = null;
       importError = "";
       ui.tab = "timeline";
     } catch (error) {
-      importError = `The spec at ${url} ${(error as Error).message}`;
-      invitation = null;
+      if (invitation !== accepted) return;
+      // The invitation stays, so a spec that was briefly unreachable can be tried again.
+      importError = `The spec at ${accepted.url} ${(error as Error).message}`;
     } finally {
       opening = false;
     }
@@ -74,14 +78,15 @@
   // Writing to the clipboard is refused outside a secure context and can be denied outright, so
   // the link is shown instead of lost.
   async function copyLink() {
-    if (!sourceUrl) return;
-    const link = linkTo(sourceUrl, window.location);
+    if (!project.sourceUrl) return;
+    const link = linkTo(project.sourceUrl, window.location);
     try {
       await navigator.clipboard.writeText(link);
+      copyProblem = "";
       copied = true;
       setTimeout(() => (copied = false), 2000);
     } catch {
-      importError = `Could not copy the link; it is ${link}`;
+      copyProblem = `Could not copy the link; it is ${link}`;
     }
   }
 
@@ -138,7 +143,6 @@
   function startOver() {
     if (!confirmDiscard()) return;
     startNewProject();
-    sourceUrl = undefined;
     // Starting over should land where an experiment begins, not wherever you happened to be.
     ui.tab = "timeline";
   }
@@ -148,8 +152,7 @@
     return empty || window.confirm("Start a new experiment? The one open here will be discarded.");
   }
 
-  function openPastedSpec(url?: string) {
-    sourceUrl = url;
+  function openPastedSpec() {
     pasting = false;
     importError = "";
     ui.tab = "timeline";
@@ -164,7 +167,6 @@
       loadSpec(parseSpec(await file.text()));
       ui.tab = "timeline";
       importError = "";
-      sourceUrl = undefined;
     } catch (error) {
       importError = `Could not import ${file.name}: ${(error as Error).message}`;
     }
@@ -197,8 +199,10 @@
     bind:value={project.spec.name}
   />
   <span class="spacer"></span>
-  {#if importError || downloadError}
-    <p class="notice" data-testid="import-error">{importError || downloadError}</p>
+  {#if importError || downloadError || copyProblem}
+    <p class="notice" data-testid="import-error">
+      {importError || downloadError || copyProblem}
+    </p>
   {/if}
 
   <button
@@ -235,7 +239,7 @@
           pasting = true;
         }}>Open a spec someone sent…</button
       >
-      {#if sourceUrl}
+      {#if project.sourceUrl}
         <button class="item" data-testid="copy-spec-link" onclick={copyLink}>
           {copied ? "Link copied" : "Copy a link to this spec"}
         </button>
@@ -361,10 +365,7 @@
               <button
                 class="example"
                 data-testid={`example-${example.id}`}
-                onclick={() => {
-                  openExample(example.spec);
-                  sourceUrl = undefined;
-                }}
+                onclick={() => openExample(example.spec)}
               >
                 <strong>{example.title}</strong>
                 <span class="muted">{example.description}</span>
@@ -374,7 +375,7 @@
               New here? Take a one-minute tour
             </button>
           </section>
-          <section class="examples" aria-labelledby="sent-heading" data-testid="open-sent">
+          <section class="sent" aria-labelledby="sent-heading">
             <h2 id="sent-heading">Or open a spec someone sent you</h2>
             <p class="muted">
               A whole study fits in one file. Paste what they sent, or the address it lives at, and
@@ -599,13 +600,15 @@
     overflow: auto;
   }
   .start,
-  .examples {
+  .examples,
+  .sent {
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
   }
   .start h2,
-  .examples h2 {
+  .examples h2,
+  .sent h2 {
     margin: 0;
   }
   .start h2 {

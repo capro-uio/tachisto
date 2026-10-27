@@ -395,8 +395,12 @@ came from.
 A link is an invitation, not an instruction. Following one shows where the spec comes from and
 waits: nothing is fetched until it is accepted, because a spec carries the code and HTML that run
 for every participant the study reaches — see
-[Code, and projects from other people](#code-and-projects-from-other-people). Only `https`
-addresses are opened, so what arrives cannot be rewritten on the way.
+[Code, and projects from other people](#code-and-projects-from-other-people). Declining while it
+is being fetched still opens nothing, which is what makes the asking real rather than a formality.
+Accepting replaces whatever is open, so it asks about that too — the work being discarded belongs
+to whoever is reading, not to whoever sent the link. Only `https` addresses are opened, so what
+arrives cannot be rewritten on the way, and an answer too long to be a spec is refused rather than
+parsed.
 
 ## Code, and projects from other people
 

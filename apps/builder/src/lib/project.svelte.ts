@@ -32,7 +32,15 @@ export interface Insertion {
   index: number;
 }
 
-export const project = $state<{ spec: Spec; selection: NodePath | null; insertion: Insertion }>({
+export const project = $state<{
+  spec: Spec;
+  selection: NodePath | null;
+  insertion: Insertion;
+  /** The address the open spec came from, when it came from one, so a link to it can be passed
+   *  on. Owned here, beside the spec, because a stale one would hand out a link to a study that
+   *  is no longer open. */
+  sourceUrl?: string;
+}>({
   spec: emptySpec(),
   selection: null,
   insertion: { path: [], index: 0 },
@@ -228,6 +236,7 @@ export function startNewProject() {
   project.spec = emptySpec();
   project.selection = null;
   project.insertion = { path: [], index: 0 };
+  project.sourceUrl = undefined;
 }
 
 /** Nothing has been made here yet, so replacing it loses nothing. */
@@ -235,10 +244,11 @@ export function isUntouched() {
   return JSON.stringify(project.spec) === JSON.stringify(emptySpec());
 }
 
-export function loadSpec(spec: Spec) {
+export function loadSpec(spec: Spec, sourceUrl?: string) {
   project.spec = { conditions: {}, ...spec };
   project.selection = null;
   project.insertion = { path: [], index: spec.timeline.length };
+  project.sourceUrl = sourceUrl;
 }
 
 /** Examples are shared module data, so each opening edits its own copy. */
