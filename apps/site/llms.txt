@@ -1,0 +1,46 @@
+# Tachisto
+
+> Tachisto builds jsPsych experiments from a declarative JSON spec. A spec is one file and it is
+> the whole study: the timeline, the conditions, every step's parameters, where the data goes. It
+> compiles to readable jsPsych source and a single HTML file that runs in a browser and can be
+> hosted anywhere.
+
+Write the spec, do not write jsPsych. Hand-written jsPsych fails silently — the published
+community flanker timeline renders one stimulus for every condition because it reads timeline
+variables the wrong way, with no console error. The compiler encodes those rules once, so a spec
+that validates is a study that runs.
+
+## The spec
+
+- [Spec schema](https://www.capro.dev/tachisto/spec-schema.json): JSON Schema (draft-07) for the
+  whole spec, including every jsPsych plugin's own parameters and the JSDoc describing each one.
+  Generated from the plugins themselves, so it is never out of date with them. Name it in a spec's
+  `$schema` and an editor will complete and check the spec as it is written.
+- A parameter takes a literal, a `{ "var": "column" }` reference to a conditions column, or a
+  `{ "code": "..." }` expression worked out when the trial starts.
+- Structural rules live in the schema; rules needing the whole spec at once — whether a referenced
+  column exists upstream of the step reading it — live in the validator, which is what `validate`
+  below runs.
+
+## Building one
+
+- Command line: `npx @tachisto/cli validate study.json` and `npx @tachisto/cli compile study.json`.
+  Add `--json` for one machine-readable envelope instead of lines. Exit `0` nothing wrong, `1` the
+  spec has errors, `2` the command could not be read, `70` a fault inside Tachisto. Warnings never
+  fail a command.
+- MCP: `npx @tachisto/mcp` serves `validate_spec`, `compile_spec` and `builder_link` over stdio.
+- Neither needs a jsPsych plugin installed: the plugin schemas ship with the packages.
+
+## Showing it to a person
+
+- The builder is at <https://www.capro.dev/tachisto/app/>. It opens a spec pasted straight in, or
+  one at an https address.
+- `https://www.capro.dev/tachisto/app/?spec=<https address of a spec>` opens that spec directly.
+  `builder_link` builds this. Following such a link asks the reader before fetching anything,
+  because a spec carries code that runs for every participant.
+
+## Reading further
+
+- [What Tachisto is](https://www.capro.dev/tachisto/)
+- [Repository and full documentation](https://github.com/capro-uio/tachisto)
+- [jsPsych, which runs the study](https://www.jspsych.org)

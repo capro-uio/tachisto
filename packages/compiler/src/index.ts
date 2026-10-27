@@ -26,6 +26,7 @@ export {
   RETENTIONS,
   retentionOf,
 } from "./recruitment.ts";
+export { BUILDER_URL, SPEC_PARAMETER, builderLink } from "./builder.ts";
 export { DEFAULT_BACKGROUND, DEFAULT_TEXT, backgroundColor, textColor } from "./appearance.ts";
 export type { CompileOptions } from "./compile.ts";
 export { formatSource } from "./format.ts";

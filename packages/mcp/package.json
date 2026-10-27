@@ -1,0 +1,49 @@
+{
+  "name": "@tachisto/mcp",
+  "version": "0.0.2",
+  "description": "An MCP server that validates and compiles Tachisto experiment specs.",
+  "keywords": [
+    "jsPsych",
+    "psychology",
+    "behavioural experiments",
+    "mcp",
+    "agent"
+  ],
+  "homepage": "https://www.capro.dev/tachisto/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/capro-uio/tachisto.git",
+    "directory": "packages/mcp"
+  },
+  "bugs": {
+    "url": "https://github.com/capro-uio/tachisto/issues"
+  },
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "tachisto-mcp": "src/main.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "@tachisto/cli": "^0.0.2",
+    "@tachisto/compiler": "^0.0.2",
+    "@tachisto/schemas": "^0.0.2",
+    "zod": "^4.6.7"
+  }
+}
