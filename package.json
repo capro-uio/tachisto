@@ -31,6 +31,7 @@
     "codemeta": "npm run codemeta --workspace @tachisto/compiler",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "prelint": "npm run build:packages",
     "lint": "eslint .",
     "typecheck": "tsc -p packages/schemas/tsconfig.json && tsc -p packages/compiler/tsconfig.json && npm run check --workspace @tachisto/builder && tsc -p apps/site/tsconfig.json",
     "dev": "npm run dev --workspace @tachisto/builder",

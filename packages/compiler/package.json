@@ -42,7 +42,9 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
+    "prespec-schema": "npm run build --workspace @tachisto/schemas",
     "spec-schema": "node src/cli.ts schema",
+    "precodemeta": "npm run build --workspace @tachisto/schemas",
     "codemeta": "node src/cli.ts codemeta",
     "version": "npm run codemeta",
     "prepack": "npm run build"
