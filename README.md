@@ -43,7 +43,7 @@ maintainable by a small team.
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `@tachisto/schemas`  | Turns every plugin's `info.parameters` plus the JSDoc in its shipped `.d.ts` into JSON Schema, so the builder's forms are generated rather than hand-written |
 | `@tachisto/compiler` | Compiles a declarative spec to jsPsych source and emits an HTML experiment                                                                                   |
-| `@tachisto/cli`      | `tachisto validate` and `tachisto compile`, for building a study from a spec without the builder — or without a person                                       |
+| `@tachisto/cli`      | `tachisto validate`, `compile` and `schema`, for building a study from a spec without the builder — or without a person                                      |
 | `@tachisto/brand`    | Colours, type, logos and the brand book (`packages/brand/BRAND.md`), shared by the builder and the website                                                   |
 
 The builder lives in `apps/builder`, and the website that introduces it in `apps/site`.
@@ -56,7 +56,7 @@ npm run dev              # the builder at http://localhost:5180
 npm run dev:site         # the website at http://localhost:5181
 npm run build:pages      # the website, with the builder under app/, in dist-pages/ as Pages serves it
 npm test                 # unit tests plus two real-browser end-to-end runs
-npm run coverage         # the same, reporting coverage of the compiler, schemas and builder logic
+npm run coverage         # the same, reporting coverage of the compiler, schemas, cli and builder logic
 npm run typecheck
 npm run schemas          # regenerate packages/schemas/plugin-schemas.json, print coverage
 npm run build:packages   # build the published packages, as packing them does
@@ -333,8 +333,9 @@ the experiment, and neither does a fault in the compiler. Warnings do not fail a
 a step nothing ends is sometimes what was meant.
 
 `--json` answers with one object instead of lines, so a program reads the problems rather than
-parsing prose. Every command answers in the same envelope, and a field is added rather than
-renamed or repurposed:
+parsing prose. `validate` and `compile` answer in the same envelope, and a field is added rather
+than renamed or repurposed — `schema` takes no `--json`, because what it hands back is a JSON
+document already:
 
 ```json
 {
@@ -348,8 +349,10 @@ renamed or repurposed:
 }
 ```
 
-A problem's `path` is where it is, as indices through the timeline; the lines meant for a person
-count those from one, the JSON leaves them as they are.
+A problem's `path` is where it is, as indices through the timeline, and its `place` says the same
+in words — "step 2, otherwise, step 1". Both, because a program acts on the indices and a reader
+cannot: not every index is a step, since a branch spends one on which of its paths, so counting
+them all as steps would name a step that does not exist.
 
 A compiled page carries the spec's code and HTML, and runs it for every participant — so
 compiling a spec from someone else is running their code on your participants' machines. The

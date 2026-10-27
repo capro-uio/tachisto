@@ -1,6 +1,5 @@
 import { isError } from "@tachisto/compiler";
-import type { Problem } from "@tachisto/compiler";
-import type { Outcome } from "./outcome.ts";
+import type { Located, Outcome } from "./outcome.ts";
 import { EXIT_CODES } from "./outcome.ts";
 
 /**
@@ -16,7 +15,7 @@ export interface Payload {
   name?: string;
   output?: string;
   plugins?: string[];
-  problems: Problem[];
+  problems: Located[];
 }
 
 export interface Versions {
@@ -30,9 +29,10 @@ export interface Report {
   exitCode: number;
 }
 
-/** Where a problem is, in the words the builder uses for a step's place in the timeline. */
-const at = (problem: Problem) =>
-  problem.path === undefined ? "" : ` (step ${problem.path.map((index) => index + 1).join(".")})`;
+/** One problem as a line, with where it is when that is known. Shared, so nothing else writes
+ *  its own wording for the same thing. */
+export const problemLine = (problem: Located) =>
+  `${problem.severity}: ${problem.message}${problem.place ? ` (${problem.place})` : ""}`;
 
 export function payloadOf(outcome: Outcome, versions: Versions): Payload {
   const { command, status, problems, ...rest } = outcome;
@@ -42,10 +42,7 @@ export function payloadOf(outcome: Outcome, versions: Versions): Payload {
 function lines(outcome: Outcome): { stdout: string[]; stderr: string[] } {
   const warnings = outcome.problems.filter((problem) => !isError(problem));
   const errors = outcome.problems.filter(isError);
-  const stderr = [
-    ...warnings.map((problem) => `warning: ${problem.message}${at(problem)}`),
-    ...errors.map((problem) => `error: ${problem.message}${at(problem)}`),
-  ];
+  const stderr = [...warnings, ...errors].map(problemLine);
   const subject = outcome.name ?? outcome.spec ?? outcome.command;
   if (outcome.status !== "ok") return { stdout: [], stderr };
   if (outcome.command === "compile") {
@@ -53,9 +50,6 @@ function lines(outcome: Outcome): { stdout: string[]; stderr: string[] } {
       stdout: [`${subject}: ${outcome.plugins?.length} plugin(s) -> ${outcome.output}`],
       stderr,
     };
-  }
-  if (outcome.command === "schema") {
-    return { stdout: [`spec schema -> ${outcome.output}`], stderr };
   }
   const summary = warnings.length === 0 ? "nothing to report" : `${warnings.length} warning(s)`;
   return { stdout: [`${subject}: ${summary}`], stderr };

@@ -43,6 +43,7 @@ export {
 export type { ProjectFile } from "./targets/project.ts";
 export type { HtmlOutput, HtmlTargetOptions } from "./targets/html.ts";
 export { NODE_KINDS, SPEC_SCHEMA_ID, specSchema } from "./spec-schema.ts";
+export { placeOf } from "./places.ts";
 export { isError, SpecError, validateSpec } from "./validate.ts";
 export type { Problem } from "./validate.ts";
 export {

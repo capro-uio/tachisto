@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -58,11 +58,50 @@ describe("the command as it is installed", () => {
     expect(stdout).toContain("1 plugin(s) -> study.html");
   });
 
-  // Writing to a directory fails inside the command, which is not the spec being wrong.
-  it("keeps its own failures apart from a wrong spec", () => {
-    const { exitCode, stderr } = run(["compile", runnable, "--out", workspace]);
-    expect(exitCode).toBe(EXIT_BROKEN);
-    expect(stderr).toMatch(/^tachisto: /);
+  // A path that cannot be written to is the caller's input, as a missing spec file is — not a
+  // fault in the compiler. EXIT_BROKEN stays for faults with no reachable trigger today, which is
+  // why nothing here provokes one.
+  it("treats a path it cannot write as bad input, not as its own failure", () => {
+    const { exitCode, stderr } = run([
+      "compile",
+      runnable,
+      "--out",
+      join(workspace, "no", "x.html"),
+    ]);
+    expect(exitCode).toBe(2);
+    expect(stderr).toContain("ENOENT");
+    expect(EXIT_BROKEN).not.toBe(2);
+  });
+
+  it("hands out the spec schema whole, even down a pipe", () => {
+    const { exitCode, stdout } = run(["schema"]);
+    expect(exitCode).toBe(0);
+    // Exiting straight after a write to a pipe loses whatever has not drained; this is 533 kB.
+    const schema = JSON.parse(stdout) as { $id: string };
+    expect(schema.$id).toBe("https://www.capro.dev/tachisto/spec-schema.json");
+  });
+
+  it("writes the spec schema where it is told, and says so", () => {
+    const out = join(workspace, "spec-schema.json");
+    const { exitCode, stdout } = run(["schema", "--out", out]);
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain(`spec schema -> ${out}`);
+    expect((JSON.parse(readFileSync(out, "utf8")) as { $id: string }).$id).toContain("spec-schema");
+  });
+
+  it("refuses a schema path it cannot write, without a stack trace", () => {
+    const { exitCode, stderr } = run(["schema", "--out", join(workspace, "no", "s.json")]);
+    expect(exitCode).toBe(2);
+    expect(stderr).toContain("ENOENT");
+    expect(stderr).not.toContain("at ");
+  });
+
+  it("builds a page that loads its plugins from where --base says", () => {
+    const out = join(workspace, "local.html");
+    expect(run(["compile", runnable, "--out", out, "--base", "./vendor"]).exitCode).toBe(0);
+    const html = readFileSync(out, "utf8");
+    expect(html).toContain("./vendor/");
+    expect(html).not.toContain("unpkg.com");
   });
 
   it("offers usage when asked for nothing", () => {
