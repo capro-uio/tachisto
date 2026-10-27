@@ -18,9 +18,10 @@ Both spec tools take the spec whole (`spec`) or a file to read (`path`), and ans
 the same JSON envelope `@tachisto/cli` prints. A spec that will not run comes back as an error, so
 a caller cannot read past it.
 
-Files are written inside the directory the server was started in, or inside `TACHISTO_MCP_ROOT`
-when that is set. A spec can be authored by anyone — including whatever an agent was reading when
-it decided to call this — and it should not be able to choose where on the machine a file lands.
+Files are read and written inside the directory the server was started in, or inside
+`TACHISTO_MCP_ROOT` when that is set. A spec can be authored by anyone — including whatever an
+agent was reading when it decided to call this — and neither it nor the agent should be able to
+choose which files on the machine are touched.
 
 The spec format is published as JSON Schema at <https://www.capro.dev/tachisto/spec-schema.json>,
 which every tool's description names. Nothing here installs a jsPsych plugin.
