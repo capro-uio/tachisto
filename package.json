@@ -33,7 +33,7 @@
     "format:check": "prettier --check .",
     "prelint": "npm run build:packages",
     "lint": "eslint .",
-    "typecheck": "tsc -p packages/schemas/tsconfig.json && tsc -p packages/compiler/tsconfig.json && npm run check --workspace @tachisto/builder && tsc -p apps/site/tsconfig.json",
+    "typecheck": "tsc -p packages/schemas/tsconfig.json && tsc -p packages/compiler/tsconfig.json && tsc -p packages/cli/tsconfig.json && npm run check --workspace @tachisto/builder && tsc -p apps/site/tsconfig.json",
     "predev": "npm run build:packages",
     "dev": "npm run dev --workspace @tachisto/builder",
     "predev:site": "npm run build:packages",

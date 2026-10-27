@@ -1,0 +1,62 @@
+/** What the command line was asked to do, or why it could not be read. */
+export type Invocation =
+  | { command: "validate" | "compile"; specPath: string; options: Options }
+  | { command: "schema"; options: Options }
+  | { command: "help" }
+  | { command: "unreadable"; message: string };
+
+export interface Options {
+  /** Report as one JSON object on stdout rather than as lines for a person to read. */
+  json: boolean;
+  out?: string;
+  base?: string;
+}
+
+export const USAGE = `usage: tachisto validate <spec.json> [--json]
+       tachisto compile <spec.json> [--out <file>] [--base cdn|<path>] [--json]
+       tachisto schema [--out <file>]
+
+Exit status: 0 nothing wrong, 1 the spec has errors, 2 the command could not be read.`;
+
+const TAKES_VALUE = new Set(["out", "base"]);
+const SPEC_COMMANDS = new Set(["validate", "compile"]);
+
+const unreadable = (message: string): Invocation => ({ command: "unreadable", message });
+
+/** Reads argv without acting on it, so what the command line accepts can be tested on its own. */
+export function parseArgs(argv: string[]): Invocation {
+  const [command, ...rest] = argv;
+  if (command === undefined || command === "--help" || command === "-h") return { command: "help" };
+  if (!SPEC_COMMANDS.has(command) && command !== "schema") {
+    return unreadable(`unknown command "${command}"`);
+  }
+
+  const options: Options = { json: false };
+  const files: string[] = [];
+  for (let index = 0; index < rest.length; index += 1) {
+    const arg = rest[index];
+    if (!arg.startsWith("--")) {
+      files.push(arg);
+      continue;
+    }
+    const name = arg.slice(2);
+    if (name === "json") {
+      options.json = true;
+      continue;
+    }
+    if (!TAKES_VALUE.has(name)) return unreadable(`unknown option "${arg}"`);
+    const value = rest[index + 1];
+    // A missing value would otherwise swallow the next flag and read as a file name.
+    if (value === undefined || value.startsWith("--")) return unreadable(`--${name} needs a value`);
+    options[name as "out" | "base"] = value;
+    index += 1;
+  }
+
+  if (command === "schema") {
+    if (files.length > 0) return unreadable(`schema takes no spec file, got "${files[0]}"`);
+    return { command: "schema", options };
+  }
+  if (files.length === 0) return unreadable(`${command} needs a spec file`);
+  if (files.length > 1) return unreadable(`${command} takes one spec file, got ${files.length}`);
+  return { command: command as "validate" | "compile", specPath: files[0], options };
+}

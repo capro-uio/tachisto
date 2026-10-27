@@ -43,6 +43,7 @@ maintainable by a small team.
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `@tachisto/schemas`  | Turns every plugin's `info.parameters` plus the JSDoc in its shipped `.d.ts` into JSON Schema, so the builder's forms are generated rather than hand-written |
 | `@tachisto/compiler` | Compiles a declarative spec to jsPsych source and emits an HTML experiment                                                                                   |
+| `@tachisto/cli`      | `tachisto validate` and `tachisto compile`, for building a study from a spec without the builder — or without a person                                       |
 | `@tachisto/brand`    | Colours, type, logos and the brand book (`packages/brand/BRAND.md`), shared by the builder and the website                                                   |
 
 The builder lives in `apps/builder`, and the website that introduces it in `apps/site`.
@@ -60,7 +61,7 @@ npm run typecheck
 npm run schemas          # regenerate packages/schemas/plugin-schemas.json, print coverage
 npm run build:packages   # build the published packages, as packing them does
 npm run spec-schema      # regenerate packages/compiler/spec-schema.json
-node packages/compiler/src/cli.ts compile examples/flanker.json
+node packages/cli/src/main.ts compile examples/flanker.json
 ```
 
 The acceptance test for the UI builds `examples/flanker.json` by clicking through the app and
@@ -312,6 +313,47 @@ by `npm pack` and `npm publish`. They have to: Node refuses to strip types from 
 installed — however well it works inside this repository, where the workspaces are symlinks.
 `packages/compiler/test/install.test.ts` packs the tarballs, installs them somewhere else and runs
 them, which is the only way to see that.
+
+### From the command line
+
+A spec is the whole study, so anything that can write one can build a study — a person who would
+rather type than click, or a program doing it on someone's behalf. `@tachisto/cli` is that door:
+
+```sh
+npx @tachisto/cli validate study.json   # is this a study that will run?
+npx @tachisto/cli compile study.json    # write study.html, ready to host
+npx @tachisto/cli schema                # the spec schema this release was built against
+```
+
+It exits `0` when there is nothing wrong, `1` when the spec has errors, and `2` when the command
+itself could not be read — a missing file, a file that is not JSON, a file that is not a spec.
+Those three are kept apart on purpose: a spec that never reached the validator says nothing about
+the experiment. Warnings do not fail a command, because a step nothing ends is sometimes what was
+meant.
+
+`--json` answers with one object instead of lines, so a program reads the problems rather than
+parsing prose. Every command answers in the same envelope, and a field is added rather than
+renamed or repurposed:
+
+```json
+{
+  "tachisto": "0.0.2",
+  "jspsych": "8.3.0",
+  "command": "validate",
+  "ok": false,
+  "spec": "study.json",
+  "name": "my-experiment",
+  "problems": [{ "message": "the timeline has no steps", "severity": "error" }]
+}
+```
+
+A problem's `path` is where it is, as indices through the timeline; the lines meant for a person
+count those from one, the JSON leaves them as they are.
+
+Compiling needs no jsPsych plugin installed. The plugin schemas are extracted once and committed,
+not read when a spec is compiled, so `npx @tachisto/cli` is the whole of the install. Regenerating
+them from the installed plugins is the other half of that split and a maintainer's job:
+`npm run schemas` for `plugin-schemas.json`, `npm run spec-schema` for the spec's own schema.
 
 The schema encodes the structural rules — which step kinds exist, what each one requires, that a
 parameter may hold a `{ "var": "column" }` reference anywhere a literal is allowed, that a
