@@ -35,9 +35,55 @@
     project,
   } from "./lib/project.svelte.ts";
   import { examples } from "./lib/examples.ts";
+  import OpenSpec from "./lib/OpenSpec.svelte";
+  import { invitationFrom, isInvitation, linkTo, specFrom } from "./lib/opening.ts";
 
   let importError = $state("");
   let downloadError = $state("");
+
+  // Where the open spec came from, when it came from an address, so the link can be passed on.
+  let sourceUrl = $state<string | undefined>();
+  let pasting = $state(false);
+  let opening = $state(false);
+  let copied = $state(false);
+
+  // A link can carry a spec from anyone. Opening it is the reader's choice to make, not the
+  // link's, because a spec holds code that runs for every participant the study reaches.
+  const asked = invitationFrom(window.location.search);
+  let invitation = $state(isInvitation(asked) ? asked : null);
+  if (asked && !isInvitation(asked)) importError = `That link cannot be opened: ${asked.problem}`;
+
+  async function acceptInvitation() {
+    if (!invitation) return;
+    const { url } = invitation;
+    opening = true;
+    try {
+      loadSpec(await specFrom(url));
+      sourceUrl = url;
+      invitation = null;
+      importError = "";
+      ui.tab = "timeline";
+    } catch (error) {
+      importError = `The spec at ${url} ${(error as Error).message}`;
+      invitation = null;
+    } finally {
+      opening = false;
+    }
+  }
+
+  // Writing to the clipboard is refused outside a secure context and can be denied outright, so
+  // the link is shown instead of lost.
+  async function copyLink() {
+    if (!sourceUrl) return;
+    const link = linkTo(sourceUrl, window.location);
+    try {
+      await navigator.clipboard.writeText(link);
+      copied = true;
+      setTimeout(() => (copied = false), 2000);
+    } catch {
+      importError = `Could not copy the link; it is ${link}`;
+    }
+  }
 
   // Gathering jsPsych for a self-contained download takes a moment, and a second click meanwhile
   // would only start it again.
@@ -92,6 +138,7 @@
   function startOver() {
     if (!confirmDiscard()) return;
     startNewProject();
+    sourceUrl = undefined;
     // Starting over should land where an experiment begins, not wherever you happened to be.
     ui.tab = "timeline";
   }
@@ -99,6 +146,13 @@
   function confirmDiscard() {
     const empty = project.spec.timeline.length === 0;
     return empty || window.confirm("Start a new experiment? The one open here will be discarded.");
+  }
+
+  function openPastedSpec(url?: string) {
+    sourceUrl = url;
+    pasting = false;
+    importError = "";
+    ui.tab = "timeline";
   }
 
   async function importSpec(event: Event) {
@@ -110,6 +164,7 @@
       loadSpec(parseSpec(await file.text()));
       ui.tab = "timeline";
       importError = "";
+      sourceUrl = undefined;
     } catch (error) {
       importError = `Could not import ${file.name}: ${(error as Error).message}`;
     }
@@ -174,6 +229,19 @@
       </label>
       <button
         class="item"
+        data-testid="paste-spec"
+        onclick={() => {
+          close();
+          pasting = true;
+        }}>Open a spec someone sent…</button
+      >
+      {#if sourceUrl}
+        <button class="item" data-testid="copy-spec-link" onclick={copyLink}>
+          {copied ? "Link copied" : "Copy a link to this spec"}
+        </button>
+      {/if}
+      <button
+        class="item"
         data-testid="download-html"
         disabled={preparing}
         onclick={downloadExperiment}
@@ -222,6 +290,33 @@
   </HeaderMenu>
 </header>
 
+{#if invitation}
+  <section class="invitation" data-testid="invitation" aria-labelledby="invitation-heading">
+    <h2 id="invitation-heading">Open the spec at {invitation.host}?</h2>
+    <p>
+      This link asks to open a study from <strong>{invitation.host}</strong>. A spec holds the code
+      and text that run for every participant, so open it if you trust whoever sent it.
+    </p>
+    <p class="muted">{invitation.url}</p>
+    <div class="actions">
+      <button data-testid="invitation-decline" onclick={() => (invitation = null)}>
+        Not now
+      </button>
+      <button
+        class="primary"
+        data-testid="invitation-accept"
+        disabled={opening}
+        aria-busy={opening}
+        onclick={acceptInvitation}>{opening ? "Opening…" : "Open it"}</button
+      >
+    </div>
+  </section>
+{/if}
+
+{#if pasting}
+  <OpenSpec onopened={openPastedSpec} onclose={() => (pasting = false)} />
+{/if}
+
 <main
   style={`--panel-widths: ${panels.widths.map((width) => `${width}fr`).join(" auto ")};` +
     `--participant-background: ${backgroundColor(project.spec.settings)};` +
@@ -266,7 +361,10 @@
               <button
                 class="example"
                 data-testid={`example-${example.id}`}
-                onclick={() => openExample(example.spec)}
+                onclick={() => {
+                  openExample(example.spec);
+                  sourceUrl = undefined;
+                }}
               >
                 <strong>{example.title}</strong>
                 <span class="muted">{example.description}</span>
@@ -274,6 +372,17 @@
             {/each}
             <button class="tour" data-testid="start-tour" onclick={startTour}>
               New here? Take a one-minute tour
+            </button>
+          </section>
+          <section class="examples" aria-labelledby="sent-heading" data-testid="open-sent">
+            <h2 id="sent-heading">Or open a spec someone sent you</h2>
+            <p class="muted">
+              A whole study fits in one file. Paste what they sent, or the address it lives at, and
+              it opens here as they built it.
+            </p>
+            <button class="example" data-testid="paste-spec-start" onclick={() => (pasting = true)}>
+              <strong>Paste a spec</strong>
+              <span class="muted">Or an https address pointing at one.</span>
             </button>
           </section>
         {:else}
@@ -341,6 +450,34 @@
     margin: 0;
     color: var(--danger);
     font-size: 0.85rem;
+  }
+  .invitation {
+    margin: 0.75rem;
+    padding: 0.8rem 0.9rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--paper-raised);
+    display: grid;
+    gap: 0.4rem;
+  }
+  .invitation h2 {
+    margin: 0;
+    font-size: 1rem;
+  }
+  .invitation p {
+    margin: 0;
+    font-size: 0.85rem;
+  }
+  .invitation .muted {
+    color: var(--ink-muted);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    overflow-wrap: anywhere;
+  }
+  .invitation .actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.2rem;
   }
   .primary {
     border: 1px solid var(--stimulus-fill);

@@ -379,6 +379,25 @@ any other parameter's code is a single expression worked out when the trial star
 in scope. The compiler checks that each piece of code is exactly one JavaScript expression before
 emitting it.
 
+## Sending a study to someone else
+
+A spec is one file, and it is the whole study — so a study travels the way any file does. Send it,
+and whoever receives it opens it in the builder and sees what you built: the timeline, the
+conditions table, the parameters of every step, the preview.
+
+The builder takes it three ways. **Open a project…** reads a `.json` file from disk. **Open a spec
+someone sent…** takes the spec pasted straight in, which is what arrives in a message — or the
+https address it lives at, if it is somewhere like OSF or a repository. And a link of the form
+`https://www.capro.dev/tachisto/app/?spec=<address>` opens that address directly, so a collaborator
+needs one click. **Copy a link to this spec** builds that link for whatever address the open spec
+came from.
+
+A link is an invitation, not an instruction. Following one shows where the spec comes from and
+waits: nothing is fetched until it is accepted, because a spec carries the code and HTML that run
+for every participant the study reaches — see
+[Code, and projects from other people](#code-and-projects-from-other-people). Only `https`
+addresses are opened, so what arrives cannot be rewritten on the way.
+
 ## Code, and projects from other people
 
 A study is a web page, and the code and HTML in it run in that page for every participant, with
