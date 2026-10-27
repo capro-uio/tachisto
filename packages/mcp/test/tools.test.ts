@@ -1,10 +1,22 @@
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
-import { compileSpecSource, INLINE, linkToSpec, spoken, validateSpecSource } from "../src/tools.ts";
+import { beforeAll, describe, expect, it } from "vitest";
+import {
+  compileSpecSource,
+  INLINE,
+  linkToSpec,
+  spoken,
+  validateSpecSource,
+  withinRoot,
+} from "../src/tools.ts";
 
 const workspace = mkdtempSync(join(tmpdir(), "tachisto-mcp-"));
+
+// Whoever starts the server chooses where it may write; here that is this test.
+beforeAll(() => {
+  process.env.TACHISTO_MCP_ROOT = workspace;
+});
 
 const runnable = {
   name: "beep",
@@ -30,10 +42,12 @@ describe("validating a spec handed over in the call", () => {
     expect(answer.payload.ok).toBe(false);
   });
 
-  it("names the call rather than a file when the spec was never one", () => {
+  it("says nothing about a path for a spec that was never a file", () => {
     const answer = validateSpecSource({ spec: "{ not json" });
     expect(answer.failed).toBe(true);
-    expect(answer.payload.spec).toBe(INLINE);
+    expect(answer.payload).not.toHaveProperty("spec");
+    // The words still have to name something, and there is no path to name.
+    expect(answer.text).toContain(INLINE);
   });
 
   it("reads a spec from a path when given one instead", () => {
@@ -68,7 +82,7 @@ describe("how a spec has to be named", () => {
 describe("compiling a spec", () => {
   it("writes the study where it is told and says what it used", async () => {
     const out = join(workspace, "study.html");
-    const answer = await compileSpecSource({ spec: asText(runnable) }, out);
+    const answer = await compileSpecSource({ spec: asText(runnable) }, "study.html");
     expect(answer.failed).toBe(false);
     expect(answer.text).toContain("plugin(s)");
     expect(readFileSync(out, "utf8")).toContain("<html");
@@ -79,6 +93,39 @@ describe("compiling a spec", () => {
     const answer = await compileSpecSource({ spec: asText({ name: "empty", timeline: [] }) }, out);
     expect(answer.failed).toBe(true);
     expect(() => readFileSync(out, "utf8")).toThrow();
+  });
+});
+
+describe("where a study may be written", () => {
+  // A spec can be written by anyone, so neither it nor the agent acting on it picks the path.
+  it("refuses to write outside the directory the server was started in", async () => {
+    const answer = await compileSpecSource({ spec: asText(runnable) }, "../escaped.html");
+    expect(answer.failed).toBe(true);
+    expect(answer.text).toContain("is outside");
+
+    const absolute = await compileSpecSource({ spec: asText(runnable) }, "/tmp/escaped.html");
+    expect(absolute.failed).toBe(true);
+  });
+
+  // Confinement alone would still let a study be written over a git hook or a shell profile.
+  it("refuses a name that is not a study", async () => {
+    const answer = await compileSpecSource({ spec: asText(runnable) }, "hooks/pre-commit");
+    expect(answer.failed).toBe(true);
+    expect(answer.text).toContain(".html");
+  });
+
+  it("takes a path inside the root, and refuses the root itself", () => {
+    const inside = withinRoot("out/study.html");
+    expect("path" in inside && inside.path).toContain(join("out", "study.html"));
+    expect(withinRoot("..")).toHaveProperty("problem");
+    expect(withinRoot(".")).toHaveProperty("problem");
+  });
+
+  it("falls back to a name of its own when none is given", async () => {
+    const answer = await compileSpecSource({ spec: asText(runnable) });
+    expect(answer.failed).toBe(false);
+    expect(answer.payload.output).toContain("experiment.html");
+    expect(readFileSync(join(workspace, "experiment.html"), "utf8")).toContain("<html");
   });
 });
 
@@ -103,10 +150,10 @@ describe("refusing a link that cannot work", () => {
 });
 
 describe("how problems are read aloud", () => {
-  it("counts a step from one, as a person would", () => {
-    expect(spoken([{ message: "no good", severity: "error", path: [1, 0] }])).toBe(
-      "error: no good (step 2.1)",
-    );
+  it("says where a problem is, in the words the command line uses", () => {
+    expect(
+      spoken([{ message: "no good", severity: "error", path: [1, 0], place: "step 2, otherwise" }]),
+    ).toBe("error: no good (step 2, otherwise)");
     expect(spoken([{ message: "mind this", severity: "warning" }])).toBe("warning: mind this");
   });
 });

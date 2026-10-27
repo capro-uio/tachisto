@@ -1,5 +1,8 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { mkdtempSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import { tachistoServer } from "../src/server.ts";
 
@@ -20,7 +23,10 @@ interface Reply {
 const call = (name: string, args: Record<string, unknown>) =>
   client.callTool({ name, arguments: args }) as Promise<Reply>;
 
+const workspace = mkdtempSync(join(tmpdir(), "tachisto-mcp-server-"));
+
 beforeAll(async () => {
+  process.env.TACHISTO_MCP_ROOT = workspace;
   const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
   client = new Client({ name: "a test", version: "0" });
   await Promise.all([tachistoServer().connect(serverSide), client.connect(clientSide)]);
@@ -53,6 +59,25 @@ describe("what the server offers", () => {
     });
     expect(reply.isError).toBe(true);
     expect(JSON.parse(reply.content[1].text)).toMatchObject({ ok: false });
+  });
+
+  it("compiles a study and reports the file it wrote", async () => {
+    const reply = await call("compile_spec", { spec: runnable, out: "study.html" });
+    expect(reply.isError).toBeFalsy();
+    expect(readFileSync(join(workspace, "study.html"), "utf8")).toContain("<html");
+    expect(JSON.parse(reply.content[1].text)).toMatchObject({ ok: true, command: "compile" });
+  });
+
+  it("marks a compile it refused, rather than failing the call", async () => {
+    const reply = await call("compile_spec", { spec: runnable, out: "../escaped.html" });
+    expect(reply.isError).toBe(true);
+    expect(reply.content[0].text).toContain("is outside");
+  });
+
+  it("marks a link it cannot build, rather than failing the call", async () => {
+    const reply = await call("builder_link", { spec_url: "http://osf.io/x/study.json" });
+    expect(reply.isError).toBe(true);
+    expect(reply.content[0].text).toContain("https");
   });
 
   it("builds a link to the published builder", async () => {

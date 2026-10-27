@@ -49,7 +49,13 @@ export function tachistoServer() {
         `has errors. ${SPEC_HELP}`,
       inputSchema: {
         ...SOURCE,
-        out: z.string().optional().describe("Where to write the HTML. Defaults beside the caller."),
+        out: z
+          .string()
+          .optional()
+          .describe(
+            "Where to write the HTML, within the directory this server was started in (or " +
+              "TACHISTO_MCP_ROOT). Defaults beside the spec when a path was given.",
+          ),
       },
     },
     async ({ out, ...source }) => replyOf(await compileSpecSource(source, out)),
@@ -68,9 +74,17 @@ export function tachistoServer() {
         spec_url: z.string().describe("The https address the spec is published at."),
       },
     },
-    ({ spec_url: specUrl }) => ({
-      content: [{ type: "text" as const, text: linkToSpec(specUrl) }],
-    }),
+    ({ spec_url: specUrl }) => {
+      // Answered, not thrown: a caller can correct a bad address, but not a protocol error.
+      try {
+        return { content: [{ type: "text" as const, text: linkToSpec(specUrl) }] };
+      } catch (error) {
+        return {
+          content: [{ type: "text" as const, text: (error as Error).message }],
+          isError: true,
+        };
+      }
+    },
   );
 
   return server;
