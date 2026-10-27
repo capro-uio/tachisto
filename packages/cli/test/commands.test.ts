@@ -1,23 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { loadBundle } from "@tachisto/schemas/bundle";
 import type { Spec } from "@tachisto/compiler";
-import { compile, specSchemaDocument, validate, type Files } from "../src/commands.ts";
+import { compile, specSchemaDocument, validate } from "../src/commands.ts";
+import { fakeFiles } from "./files.ts";
 
 const bundle = loadBundle();
-
-/** Files that live only in this test, so a command can be run without touching a disk. */
-function fakeFiles(contents: Record<string, string>) {
-  const written = new Map<string, string>();
-  const files: Files = {
-    read: (path) => {
-      const text = contents[path];
-      if (text === undefined) throw new Error(`ENOENT: no such file or directory, open '${path}'`);
-      return text;
-    },
-    write: (path, text) => void written.set(path, text),
-  };
-  return { files, written };
-}
 
 const spec = (spec: Spec) => fakeFiles({ "study.json": JSON.stringify(spec) });
 
@@ -65,13 +52,20 @@ describe("validating a spec", () => {
     expect(validate("gone.json", files, bundle).problems[0].message).toMatch(/ENOENT/);
     expect(validate("notes.json", files, bundle).problems[0].message).toMatch(/^not JSON: /);
     expect(validate("list.json", files, bundle).problems[0].message).toBe(
-      "not a spec: it needs a name and a timeline",
+      "not a spec: it has no experiment name",
     );
-    // Both halves of that: a name with no timeline must not reach the validator either.
-    const nameless = fakeFiles({ "half.json": '{"name":"half"}' });
-    expect(nameless.files && validate("half.json", nameless.files, bundle)).toMatchObject({
-      status: "unreadable",
+    // The same rule the builder applies, so a wrong document gets one answer wherever it arrives:
+    // a name with no timeline, and a timeline of things that are not steps, both stop here.
+    const halves = fakeFiles({
+      "nameless.json": '{"name":"half"}',
+      "notsteps.json": '{"name":"x","timeline":[1,2,3]}',
     });
+    expect(validate("nameless.json", halves.files, bundle).problems[0].message).toBe(
+      "not a spec: timeline must be a list of steps",
+    );
+    expect(validate("notsteps.json", halves.files, bundle).problems[0].message).toContain(
+      "unknown kind",
+    );
     // None of these reached the validator, so none of them says the experiment is wrong.
     for (const path of ["gone.json", "notes.json", "list.json"]) {
       expect(validate(path, files, bundle).status).toBe("unreadable");

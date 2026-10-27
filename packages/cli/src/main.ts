@@ -1,16 +1,10 @@
 #!/usr/bin/env node
-import { readFileSync, writeFileSync } from "node:fs";
 import { loadBundle } from "@tachisto/schemas/bundle";
 import manifest from "../package.json" with { type: "json" };
 import { parseArgs, USAGE } from "./args.ts";
-import { compile, specSchemaDocument, validate, type Files } from "./commands.ts";
+import { compile, nodeFiles as files, specSchemaDocument, validate } from "./commands.ts";
 import { reportOf } from "./report.ts";
 import { EXIT_BROKEN, EXIT_CODES } from "./outcome.ts";
-
-const files: Files = {
-  read: (path) => readFileSync(path, "utf8"),
-  write: (path, text) => writeFileSync(path, text),
-};
 
 /**
  * Written, never exited on. `process.exit` discards whatever of stdout has not drained, and a
@@ -21,8 +15,21 @@ function leave(code: number) {
   process.exitCode = code;
 }
 
-/** Thrown to leave the work behind once the status and the reason are already written. */
-class Leave extends Error {}
+function handSchemaOver(out: string | undefined) {
+  if (out === undefined) {
+    process.stdout.write(specSchemaDocument());
+    return leave(0);
+  }
+  // A path that cannot be written to is the caller's input, as a missing spec file is.
+  try {
+    files.write(out, specSchemaDocument());
+  } catch (error) {
+    process.stderr.write(`${out}: ${(error as Error).message}\n`);
+    return leave(EXIT_CODES.unreadable);
+  }
+  process.stdout.write(`spec schema -> ${out}\n`);
+  return leave(0);
+}
 
 const invocation = parseArgs(process.argv.slice(2));
 
@@ -39,22 +46,7 @@ if (invocation.command === "help") {
   // for it would tell a caller their experiment is wrong.
   try {
     if (invocation.command === "schema") {
-      const { out } = invocation.options;
-      if (out === undefined) {
-        process.stdout.write(specSchemaDocument());
-        leave(0);
-      } else {
-        // A path that cannot be written to is the caller's input, as a missing spec file is.
-        try {
-          files.write(out, specSchemaDocument());
-        } catch (error) {
-          process.stderr.write(`${out}: ${(error as Error).message}\n`);
-          leave(EXIT_CODES.unreadable);
-          throw new Leave();
-        }
-        process.stdout.write(`spec schema -> ${out}\n`);
-        leave(0);
-      }
+      handSchemaOver(invocation.options.out);
     } else {
       const outcome =
         invocation.command === "validate"
@@ -66,9 +58,7 @@ if (invocation.command === "help") {
       leave(report.exitCode);
     }
   } catch (error) {
-    if (!(error instanceof Leave)) {
-      process.stderr.write(`tachisto: ${(error as Error).message}\n`);
-      leave(EXIT_BROKEN);
-    }
+    process.stderr.write(`tachisto: ${(error as Error).message}\n`);
+    leave(EXIT_BROKEN);
   }
 }
