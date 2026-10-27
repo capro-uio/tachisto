@@ -43,7 +43,7 @@ function lines(outcome: Outcome): { stdout: string[]; stderr: string[] } {
   const warnings = outcome.problems.filter((problem) => !isError(problem));
   const errors = outcome.problems.filter(isError);
   const stderr = [...warnings, ...errors].map(problemLine);
-  const subject = outcome.name ?? outcome.spec ?? outcome.command;
+  const subject = outcome.name ?? outcome.command;
   if (outcome.status !== "ok") return { stdout: [], stderr };
   if (outcome.command === "compile") {
     return {
@@ -66,7 +66,6 @@ export function reportOf(outcome: Outcome, versions: Versions, json: boolean): R
     };
   }
   const { stdout, stderr } = lines(outcome);
-  const joined = (text: string[]) =>
-    text.length === 0 ? "" : `${text.filter(Boolean).join("\n")}\n`;
+  const joined = (text: string[]) => (text.length === 0 ? "" : `${text.join("\n")}\n`);
   return { stdout: joined(stdout), stderr: joined(stderr), exitCode };
 }

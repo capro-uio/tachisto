@@ -6,7 +6,7 @@ import {
   slotsOf,
   trialsOf,
 } from "@tachisto/compiler";
-import { NODE_KINDS, SPEC_SCHEMA_ID } from "@tachisto/compiler";
+import { assertSpecShape, SPEC_SCHEMA_ID } from "@tachisto/compiler";
 import { firstFreeColumn, usualColumn } from "@tachisto/compiler";
 import { unique } from "./lists.ts";
 import { addEnding, DEFAULT_EARLY_ENDING } from "./recruitment.ts";
@@ -218,33 +218,9 @@ export function allConditionColumns() {
   return unique(conditionTableNames().flatMap(conditionColumns));
 }
 
-const KNOWN_KINDS = new Set<string>(NODE_KINDS);
-
-function assertNodes(nodes: unknown, where: string): asserts nodes is SpecNode[] {
-  if (!Array.isArray(nodes)) throw new Error(`${where} must be a list of steps`);
-  for (const node of nodes as SpecNode[]) {
-    const kind = node?.kind;
-    if (!KNOWN_KINDS.has(kind)) throw new Error(`${where} holds a step of unknown kind "${kind}"`);
-    if (kind === "trial") {
-      if (typeof (node as { plugin?: unknown }).plugin !== "string") {
-        throw new Error(`${where} holds a trial with no plugin`);
-      }
-    } else if (kind === "block" || kind === "loop") {
-      assertNodes((node as { children?: unknown }).children, `${where} › ${kind}`);
-    } else if (kind !== "checkpoint" && kind !== "end") {
-      const slots: unknown = slotsOf(node);
-      if (!Array.isArray(slots)) throw new Error(`${where} › ${kind} holds no list of paths`);
-      for (const slot of slots as { name?: unknown; children?: unknown }[]) {
-        assertNodes(slot?.children, `${where} › ${kind} › ${String(slot?.name)}`);
-      }
-    }
-  }
-}
-
 export function parseSpec(text: string): Spec {
-  const parsed = JSON.parse(text) as Spec;
-  if (typeof parsed?.name !== "string") throw new Error("the file has no experiment name");
-  assertNodes(parsed.timeline, "timeline");
+  const parsed: unknown = JSON.parse(text);
+  assertSpecShape(parsed);
   return parsed;
 }
 

@@ -1,5 +1,13 @@
+import { readFileSync, writeFileSync } from "node:fs";
 import { basename } from "node:path";
-import { compileSpec, emitHtml, placeOf, SpecError, validateSpec } from "@tachisto/compiler";
+import {
+  assertSpecShape,
+  compileSpec,
+  emitHtml,
+  placeOf,
+  SpecError,
+  validateSpec,
+} from "@tachisto/compiler";
 import specSchema from "@tachisto/compiler/spec-schema.json" with { type: "json" };
 import type { Problem, Spec } from "@tachisto/compiler";
 import type { SchemaBundle } from "@tachisto/schemas";
@@ -11,6 +19,12 @@ export interface Files {
   read(path: string): string;
   write(path: string, text: string): void;
 }
+
+/** The seam over a real disk. The encoding is part of the contract, so it is written once. */
+export const nodeFiles: Files = {
+  read: (path) => readFileSync(path, "utf8"),
+  write: (path, text) => writeFileSync(path, text),
+};
 
 type Read = { read: true; spec: Spec } | { read: false; failure: Outcome };
 
@@ -30,16 +44,15 @@ function readSpec(command: Outcome["command"], specPath: string, files: Files): 
       failure: unreadableOutcome(command, `not JSON: ${(error as Error).message}`, specPath),
     };
   }
-  // The schema and the validator check what a spec holds; this only checks it is a spec at all,
-  // so a wrong file gives its own answer rather than a validator's puzzling one.
-  const spec = parsed as Spec;
-  if (typeof spec?.name !== "string" || !Array.isArray(spec.timeline)) {
+  try {
+    assertSpecShape(parsed);
+  } catch (error) {
     return {
       read: false,
-      failure: unreadableOutcome(command, "not a spec: it needs a name and a timeline", specPath),
+      failure: unreadableOutcome(command, `not a spec: ${(error as Error).message}`, specPath),
     };
   }
-  return { read: true, spec };
+  return { read: true, spec: parsed };
 }
 
 const problemsOf = (error: unknown) => {

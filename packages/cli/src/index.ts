@@ -1,11 +1,7 @@
-export { parseArgs, USAGE, type Invocation, type Options } from "./args.ts";
-export { compile, specSchemaDocument, validate, type Files } from "./commands.ts";
-export { EXIT_CODES, type Outcome, type Status } from "./outcome.ts";
-export {
-  payloadOf,
-  problemLine,
-  reportOf,
-  type Payload,
-  type Report,
-  type Versions,
-} from "./report.ts";
+/**
+ * What another package may build on. Argument parsing, exit statuses and terminal prose stay
+ * inside the command line, which is the only thing that has a terminal.
+ */
+export { compile, nodeFiles, validate, type Files } from "./commands.ts";
+export { unreadableOutcome, type Located, type Outcome, type Status } from "./outcome.ts";
+export { payloadOf, problemLine, type Payload } from "./report.ts";

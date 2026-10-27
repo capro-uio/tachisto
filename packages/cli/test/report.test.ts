@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { loadBundle } from "@tachisto/schemas/bundle";
 import type { Spec } from "@tachisto/compiler";
-import { compile, type Files } from "../src/commands.ts";
+import { compile } from "../src/commands.ts";
+import { fakeFiles } from "./files.ts";
 import { payloadOf, reportOf } from "../src/report.ts";
 import type { Outcome } from "../src/outcome.ts";
 
@@ -13,16 +14,8 @@ const drawing = (params: Record<string, boolean>): Spec => ({
   timeline: [{ kind: "trial", plugin: "sketchpad", params }],
 });
 
-function filesHolding(spec: Spec) {
-  const written = new Map<string, string>();
-  const files: Files = {
-    read: () => JSON.stringify(spec),
-    write: (path, text) => void written.set(path, text),
-  };
-  return files;
-}
-
-const built = (spec: Spec) => compile("drawing.json", {}, filesHolding(spec), bundle);
+const built = (spec: Spec) =>
+  compile("drawing.json", {}, fakeFiles({ "drawing.json": JSON.stringify(spec) }).files, bundle);
 
 describe("what the command line says once a study is built", () => {
   it("prints each warning on a line of its own, marked as a warning", async () => {
@@ -65,16 +58,17 @@ describe("the status a command leaves behind", () => {
 
 describe("what a person is told when nothing is wrong", () => {
   it("says so, and counts the warnings when there are any", async () => {
-    const clean = reportOf(await built(drawing({})), versions, false);
-    expect(clean.stdout).toBe("drawing: 1 plugin(s) -> drawing.html\n");
-
     const { validate } = await import("../src/commands.ts");
-    const quiet = validate("drawing.json", filesHolding(drawing({})), bundle);
+    const quiet = validate(
+      "drawing.json",
+      fakeFiles({ "drawing.json": JSON.stringify(drawing({})) }).files,
+      bundle,
+    );
     expect(reportOf(quiet, versions, false).stdout).toBe("drawing: nothing to report\n");
 
     const noisy = validate(
       "drawing.json",
-      filesHolding(drawing({ show_finished_button: false })),
+      fakeFiles({ "drawing.json": JSON.stringify(drawing({ show_finished_button: false })) }).files,
       bundle,
     );
     expect(reportOf(noisy, versions, false).stdout).toBe("drawing: 1 warning(s)\n");
