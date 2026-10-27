@@ -42,6 +42,16 @@ describe("validating a spec handed over in the call", () => {
     expect(answer.payload.ok).toBe(false);
   });
 
+  // "will not run" blames an experiment; there was never one to blame.
+  it("tells a spec it could not read apart from one that will not run", () => {
+    const unreadable = validateSpecSource({ path: "absent.json" });
+    expect(unreadable.failed).toBe(true);
+    expect(unreadable.text).toContain("There is no spec to check at absent.json");
+
+    const invalid = validateSpecSource({ spec: asText({ name: "empty", timeline: [] }) });
+    expect(invalid.text).toContain("will not run as it stands");
+  });
+
   it("says nothing about a path for a spec that was never a file", () => {
     const answer = validateSpecSource({ spec: "{ not json" });
     expect(answer.failed).toBe(true);

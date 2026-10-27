@@ -1,10 +1,2 @@
+/** What an embedder wants: the server, ready to connect to a transport of its own choosing. */
 export { tachistoServer } from "./server.ts";
-export {
-  compileSpecSource,
-  INLINE,
-  linkToSpec,
-  spoken,
-  validateSpecSource,
-  type Answer,
-  type SpecSource,
-} from "./tools.ts";

@@ -31,8 +31,8 @@ that validates is a study that runs.
   wrong, `1` the spec has errors, `2` the command could not be read, `70` a fault inside Tachisto.
   Warnings never fail a command.
 - MCP: `npx @tachisto/mcp` serves `validate_spec`, `compile_spec` and `builder_link` over stdio.
-  It writes inside the directory it was started in, or `TACHISTO_MCP_ROOT`, so a spec cannot
-  choose where a file lands.
+  It reads and writes only inside the directory it was started in, or `TACHISTO_MCP_ROOT`, so a
+  spec cannot choose which files are touched.
 - Neither needs a jsPsych plugin installed: the plugin schemas ship with the packages.
 
 ## Showing it to a person

@@ -1,8 +1,9 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, realpathSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { builderLink } from "@tachisto/compiler";
 import {
   compile,
+  nodeFiles,
   payloadOf,
   problemLine,
   unreadableOutcome,
@@ -30,6 +31,11 @@ export const INLINE = "(the spec in this call)";
  * agent happened to be reading when it decided to call — so neither the spec nor the agent acting
  * on it chooses where on the machine a file lands. Whoever starts the server chooses.
  */
+/**
+ * Where this server may read and write. A spec can be written by anyone — including whatever an
+ * agent happened to be reading when it decided to call — so neither the spec nor the agent acting
+ * on it chooses which files on the machine are touched. Whoever starts the server chooses.
+ */
 export const rootDirectory = () => resolve(process.env.TACHISTO_MCP_ROOT ?? process.cwd());
 
 /** The path within the root, or why it is not one. */
@@ -40,19 +46,34 @@ export function withinRoot(path: string): { path: string } | { problem: string }
   if (step === "" || step.startsWith("..") || isAbsolute(step)) {
     return { problem: `${path} is outside ${root}` };
   }
-  return { path: target };
+  // A link inside the root can still point out of it, and writing follows it.
+  const settled = existsSync(target) ? realpathSync(target) : join(realpathSync(root), step);
+  if (relative(realpathSync(root), settled).startsWith("..")) {
+    return { problem: `${path} leads outside ${root}` };
+  }
+  return { path: settled };
+}
+
+/**
+ * A disk seam that cannot reach outside the root, on the way in as well as out. The rule lives
+ * here rather than at the one call site that first needed it, so a tool added later gets it
+ * without knowing it exists.
+ */
+export function confinedFiles(): Files {
+  const guard = (path: string) => {
+    const within = withinRoot(path);
+    if ("problem" in within) throw new Error(within.problem);
+    return within.path;
+  };
+  return {
+    read: (path) => nodeFiles.read(guard(path)),
+    write: (path, text) => nodeFiles.write(guard(path), text),
+  };
 }
 
 const sourceFiles = (source: SpecSource): { files: Files; label: string } => {
-  if (source.path !== undefined) {
-    return {
-      label: source.path,
-      files: {
-        read: (path) => readFileSync(path, "utf8"),
-        write: (path, text) => writeFileSync(path, text),
-      },
-    };
-  }
+  const confined = confinedFiles();
+  if (source.path !== undefined) return { label: source.path, files: confined };
   const spec = source.spec ?? "";
   return {
     label: INLINE,
@@ -62,7 +83,7 @@ const sourceFiles = (source: SpecSource): { files: Files; label: string } => {
         if (path !== INLINE) throw new Error(`there is no ${path} to read`);
         return spec;
       },
-      write: (path, text) => writeFileSync(path, text),
+      write: (path, text) => confined.write(path, text),
     },
   };
 };
@@ -104,16 +125,20 @@ export function validateSpecSource(source: SpecSource): Answer {
   const asked = sourceProblem(source);
   if (asked) return refusal("validate", asked);
   const { files, label } = sourceFiles(source);
-  const payload = payloadOf(validate(label, files, bundle), versions);
-  return answerOf(
-    payload,
-    payload.ok
+  const outcome = validate(label, files, bundle);
+  const payload = payloadOf(outcome, versions);
+  // A spec that could not be read says nothing about an experiment, so it is not told that its
+  // experiment will not run.
+  const said =
+    outcome.status === "ok"
       ? `${payload.name} is a study that will run.`
-      : `${payload.name ?? label} will not run as it stands.`,
-  );
+      : outcome.status === "invalid"
+        ? `${payload.name ?? label} will not run as it stands.`
+        : `There is no spec to check at ${label}.`;
+  return answerOf(payload, said);
 }
 
-export async function compileSpecSource(source: SpecSource, out?: string): Promise<Answer> {
+export async function compileSpecSource(source: SpecSource, requested?: string): Promise<Answer> {
   const asked = sourceProblem(source);
   if (asked) return refusal("compile", asked);
   const { files, label } = sourceFiles(source);
@@ -121,18 +146,21 @@ export async function compileSpecSource(source: SpecSource, out?: string): Promi
   // the server happened to be started.
   const fallback =
     label === INLINE ? "experiment.html" : join(dirname(label), `${basename(label, ".json")}.html`);
-  const within = withinRoot(out === undefined || out === "" ? fallback : out);
+  const out = requested === undefined || requested === "" ? fallback : requested;
+  if (!out.endsWith(".html")) return refusal("compile", "the study has to be an .html file");
+  // Where it may be written is the seam's rule; asking here only turns a refusal into an answer.
+  const within = withinRoot(out);
   if ("problem" in within) return refusal("compile", within.problem);
-  if (!within.path.endsWith(".html"))
-    return refusal("compile", "the study has to be an .html file");
 
-  const payload = payloadOf(await compile(label, { out: within.path }, files, bundle), versions);
-  return answerOf(
-    payload,
-    payload.ok
+  const outcome = await compile(label, { out }, files, bundle);
+  const payload = payloadOf(outcome, versions);
+  const said =
+    outcome.status === "ok"
       ? `Wrote ${payload.output}, a study using ${payload.plugins?.length ?? 0} plugin(s).`
-      : `${payload.name ?? label} was not compiled.`,
-  );
+      : outcome.status === "invalid"
+        ? `${payload.name ?? label} was not compiled.`
+        : `There is no spec to compile at ${label}.`;
+  return answerOf(payload, said);
 }
 
 /**
