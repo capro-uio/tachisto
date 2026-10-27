@@ -22,7 +22,7 @@ function filesHolding(spec: Spec) {
   return files;
 }
 
-const built = (spec: Spec) => compile("drawing.json", { json: false }, filesHolding(spec), bundle);
+const built = (spec: Spec) => compile("drawing.json", {}, filesHolding(spec), bundle);
 
 describe("what the command line says once a study is built", () => {
   it("prints each warning on a line of its own, marked as a warning", async () => {
@@ -60,6 +60,24 @@ describe("the status a command leaves behind", () => {
     const report = reportOf(outcome("invalid"), versions, false);
     expect(report.stderr).toBe("error: no good\n");
     expect(report.stdout).toBe("");
+  });
+});
+
+describe("what a person is told when nothing is wrong", () => {
+  it("says so, and counts the warnings when there are any", async () => {
+    const clean = reportOf(await built(drawing({})), versions, false);
+    expect(clean.stdout).toBe("drawing: 1 plugin(s) -> drawing.html\n");
+
+    const { validate } = await import("../src/commands.ts");
+    const quiet = validate("drawing.json", filesHolding(drawing({})), bundle);
+    expect(reportOf(quiet, versions, false).stdout).toBe("drawing: nothing to report\n");
+
+    const noisy = validate(
+      "drawing.json",
+      filesHolding(drawing({ show_finished_button: false })),
+      bundle,
+    );
+    expect(reportOf(noisy, versions, false).stdout).toBe("drawing: 1 warning(s)\n");
   });
 });
 
@@ -105,16 +123,29 @@ describe("what another program reads", () => {
       problems: [{ message: "the timeline has no steps", severity: "error" }],
     });
   });
-
-  // A step's place is an index path in the spec; a person reads it counting from one.
-  it("numbers a step from one for a person and leaves the path alone for a program", () => {
+  // A reader gets the place in words; a program keeps the indices it can act on. Both, not one.
+  it("says where a problem is for a person and leaves the path alone for a program", () => {
     const outcome: Outcome = {
       command: "validate",
       status: "invalid",
-      problems: [{ message: "no good", severity: "error", path: [1, 0] }],
+      problems: [
+        { message: "no good", severity: "error", path: [1, 0], place: "step 2, otherwise" },
+      ],
       spec: "study.json",
     };
-    expect(reportOf(outcome, versions, false).stderr).toBe("error: no good (step 2.1)\n");
-    expect(payloadOf(outcome, versions).problems[0].path).toEqual([1, 0]);
+    expect(reportOf(outcome, versions, false).stderr).toBe("error: no good (step 2, otherwise)\n");
+    const [problem] = payloadOf(outcome, versions).problems;
+    expect(problem.path).toEqual([1, 0]);
+    expect(problem.place).toBe("step 2, otherwise");
+  });
+
+  it("says nothing about a place when the problem has no path", () => {
+    const outcome: Outcome = {
+      command: "validate",
+      status: "invalid",
+      problems: [{ message: "the timeline has no steps", severity: "error" }],
+      spec: "study.json",
+    };
+    expect(reportOf(outcome, versions, false).stderr).toBe("error: the timeline has no steps\n");
   });
 });

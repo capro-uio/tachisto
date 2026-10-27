@@ -12,49 +12,63 @@ const files: Files = {
   write: (path, text) => writeFileSync(path, text),
 };
 
+/**
+ * Written, never exited on. `process.exit` discards whatever of stdout has not drained, and a
+ * pipe drains asynchronously — exiting after writing the 533 kB spec schema handed the reader
+ * 128 kB of it and a success. Setting the code lets Node leave once the writes are through.
+ */
+function leave(code: number) {
+  process.exitCode = code;
+}
+
+/** Thrown to leave the work behind once the status and the reason are already written. */
+class Leave extends Error {}
+
 const invocation = parseArgs(process.argv.slice(2));
 
 if (invocation.command === "help") {
-  console.log(USAGE);
-  process.exit(0);
-}
-if (invocation.command === "unreadable") {
-  console.error(`${invocation.message}\n\n${USAGE}`);
-  process.exit(EXIT_CODES.unreadable);
-}
-
-const bundle = loadBundle();
-const versions = { tachisto: manifest.version, jspsych: bundle.jspsych };
-
-if (invocation.command === "schema") {
-  const { out } = invocation.options;
-  if (out === undefined) {
-    process.stdout.write(specSchemaDocument());
-  } else {
-    files.write(out, specSchemaDocument());
-    const report = reportOf(
-      { command: "schema", status: "ok", problems: [], output: out },
-      versions,
-      invocation.options.json,
-    );
-    process.stdout.write(report.stdout);
+  process.stdout.write(`${USAGE}\n`);
+  leave(0);
+} else if (invocation.command === "unreadable") {
+  process.stderr.write(`${invocation.message}\n\n${USAGE}\n`);
+  leave(EXIT_CODES.unreadable);
+} else {
+  const bundle = loadBundle();
+  const versions = { tachisto: manifest.version, jspsych: bundle.jspsych };
+  // Everything the commands can throw that is not a spec problem is a fault here, and exiting 1
+  // for it would tell a caller their experiment is wrong.
+  try {
+    if (invocation.command === "schema") {
+      const { out } = invocation.options;
+      if (out === undefined) {
+        process.stdout.write(specSchemaDocument());
+        leave(0);
+      } else {
+        // A path that cannot be written to is the caller's input, as a missing spec file is.
+        try {
+          files.write(out, specSchemaDocument());
+        } catch (error) {
+          process.stderr.write(`${out}: ${(error as Error).message}\n`);
+          leave(EXIT_CODES.unreadable);
+          throw new Leave();
+        }
+        process.stdout.write(`spec schema -> ${out}\n`);
+        leave(0);
+      }
+    } else {
+      const outcome =
+        invocation.command === "validate"
+          ? validate(invocation.specPath, files, bundle)
+          : await compile(invocation.specPath, invocation.options, files, bundle);
+      const report = reportOf(outcome, versions, invocation.options.json);
+      if (report.stderr) process.stderr.write(report.stderr);
+      if (report.stdout) process.stdout.write(report.stdout);
+      leave(report.exitCode);
+    }
+  } catch (error) {
+    if (!(error instanceof Leave)) {
+      process.stderr.write(`tachisto: ${(error as Error).message}\n`);
+      leave(EXIT_BROKEN);
+    }
   }
-  process.exit(0);
 }
-
-// Anything the compiler throws that is not a spec problem is a fault here, not in the spec, and
-// exiting 1 for it would tell a caller the experiment is wrong.
-let report;
-try {
-  const outcome =
-    invocation.command === "validate"
-      ? validate(invocation.specPath, files, bundle)
-      : await compile(invocation.specPath, invocation.options, files, bundle);
-  report = reportOf(outcome, versions, invocation.options.json);
-} catch (error) {
-  console.error(`tachisto: ${(error as Error).message}`);
-  process.exit(EXIT_BROKEN);
-}
-if (report.stderr) process.stderr.write(report.stderr);
-if (report.stdout) process.stdout.write(report.stdout);
-process.exit(report.exitCode);

@@ -23,24 +23,31 @@
   "engines": {
     "node": ">=22.18"
   },
-  "main": "src/index.ts",
+  "main": "dist/src/index.js",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    }
   },
   "bin": {
-    "tachisto": "src/main.ts"
+    "tachisto": "dist/src/main.js"
   },
   "files": [
-    "src"
+    "dist",
+    "README.md"
   ],
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "npm run build",
     "test": "vitest run"
   },
   "dependencies": {
     "@tachisto/compiler": "^0.0.2",
     "@tachisto/schemas": "^0.0.2"
-  }
+  },
+  "types": "dist/src/index.d.ts"
 }

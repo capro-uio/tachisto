@@ -67,6 +67,11 @@ describe("validating a spec", () => {
     expect(validate("list.json", files, bundle).problems[0].message).toBe(
       "not a spec: it needs a name and a timeline",
     );
+    // Both halves of that: a name with no timeline must not reach the validator either.
+    const nameless = fakeFiles({ "half.json": '{"name":"half"}' });
+    expect(nameless.files && validate("half.json", nameless.files, bundle)).toMatchObject({
+      status: "unreadable",
+    });
     // None of these reached the validator, so none of them says the experiment is wrong.
     for (const path of ["gone.json", "notes.json", "list.json"]) {
       expect(validate(path, files, bundle).status).toBe("unreadable");
@@ -77,7 +82,7 @@ describe("validating a spec", () => {
 describe("compiling a spec", () => {
   it("writes the page beside whoever ran the command, not beside the spec", async () => {
     const { files, written } = fakeFiles({ "deep/in/a/tree/study.json": JSON.stringify(sound) });
-    const outcome = await compile("deep/in/a/tree/study.json", { json: false }, files, bundle);
+    const outcome = await compile("deep/in/a/tree/study.json", {}, files, bundle);
     expect(outcome).toMatchObject({
       command: "compile",
       status: "ok",
@@ -91,13 +96,13 @@ describe("compiling a spec", () => {
 
   it("writes where it is told to", async () => {
     const { files, written } = spec(sound);
-    await compile("study.json", { json: false, out: "out/page.html" }, files, bundle);
+    await compile("study.json", { out: "out/page.html" }, files, bundle);
     expect([...written.keys()]).toEqual(["out/page.html"]);
   });
 
   it("writes nothing when the spec has errors", async () => {
     const { files, written } = spec({ name: "empty", timeline: [] });
-    const outcome = await compile("study.json", { json: false }, files, bundle);
+    const outcome = await compile("study.json", {}, files, bundle);
     expect(outcome.status).toBe("invalid");
     expect(written.size).toBe(0);
   });

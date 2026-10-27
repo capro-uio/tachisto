@@ -20,6 +20,14 @@ describe("what the command line accepts", () => {
     });
   });
 
+  it("parses the schema command and where to put it", () => {
+    expect(parseArgs(["schema"])).toEqual({ command: "schema", options: { json: false } });
+    expect(parseArgs(["schema", "--out", "s.json"])).toEqual({
+      command: "schema",
+      options: { json: false, out: "s.json" },
+    });
+  });
+
   it("offers help when asked, and when asked for nothing", () => {
     expect(parseArgs([])).toEqual({ command: "help" });
     expect(parseArgs(["--help"])).toEqual({ command: "help" });
@@ -45,7 +53,16 @@ describe("what the command line accepts", () => {
     });
     expect(parseArgs(["validate", "s.json", "--json=yes"])).toEqual({
       command: "unreadable",
-      message: 'unknown option "--json"',
+      message: "--json takes no value",
+    });
+    expect(parseArgs(["schema", "--json"])).toEqual({
+      command: "unreadable",
+      message: "schema does not take --json; its answer is JSON already",
+    });
+    // A single dash read as a file name hides the mistake until the open fails.
+    expect(parseArgs(["validate", "-h"])).toEqual({
+      command: "unreadable",
+      message: 'unknown option "-h"',
     });
     expect(parseArgs(["schema", "s.json"])).toEqual({
       command: "unreadable",

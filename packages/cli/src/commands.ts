@@ -1,11 +1,10 @@
 import { basename } from "node:path";
-import { compileSpec, emitHtml, SpecError, validateSpec } from "@tachisto/compiler";
+import { compileSpec, emitHtml, placeOf, SpecError, validateSpec } from "@tachisto/compiler";
 import specSchema from "@tachisto/compiler/spec-schema.json" with { type: "json" };
-import type { Spec } from "@tachisto/compiler";
+import type { Problem, Spec } from "@tachisto/compiler";
 import type { SchemaBundle } from "@tachisto/schemas";
-import type { Options } from "./args.ts";
 import type { Outcome } from "./outcome.ts";
-import { unreadable } from "./outcome.ts";
+import { unreadableOutcome } from "./outcome.ts";
 
 /** Reading and writing files, kept behind a seam so the commands can be tested without any. */
 export interface Files {
@@ -20,7 +19,7 @@ function readSpec(command: Outcome["command"], specPath: string, files: Files): 
   try {
     text = files.read(specPath);
   } catch (error) {
-    return { read: false, failure: unreadable(command, (error as Error).message, specPath) };
+    return { read: false, failure: unreadableOutcome(command, (error as Error).message, specPath) };
   }
   let parsed: unknown;
   try {
@@ -28,7 +27,7 @@ function readSpec(command: Outcome["command"], specPath: string, files: Files): 
   } catch (error) {
     return {
       read: false,
-      failure: unreadable(command, `not JSON: ${(error as Error).message}`, specPath),
+      failure: unreadableOutcome(command, `not JSON: ${(error as Error).message}`, specPath),
     };
   }
   // The schema and the validator check what a spec holds; this only checks it is a spec at all,
@@ -37,7 +36,7 @@ function readSpec(command: Outcome["command"], specPath: string, files: Files): 
   if (typeof spec?.name !== "string" || !Array.isArray(spec.timeline)) {
     return {
       read: false,
-      failure: unreadable(command, "not a spec: it needs a name and a timeline", specPath),
+      failure: unreadableOutcome(command, "not a spec: it needs a name and a timeline", specPath),
     };
   }
   return { read: true, spec };
@@ -48,6 +47,12 @@ const problemsOf = (error: unknown) => {
   throw error;
 };
 
+/** Says where each problem is, which only a reader holding the spec can work out. */
+const located = (problems: Problem[], spec: Spec) =>
+  problems.map((problem) =>
+    problem.path === undefined ? problem : { ...problem, place: placeOf(spec, problem.path) },
+  );
+
 export function validate(specPath: string, files: Files, bundle: SchemaBundle): Outcome {
   const read = readSpec("validate", specPath, files);
   if (!read.read) return read.failure;
@@ -57,7 +62,7 @@ export function validate(specPath: string, files: Files, bundle: SchemaBundle): 
     return {
       command: "validate",
       status: "ok",
-      problems: warnings,
+      problems: located(warnings, spec),
       spec: specPath,
       name: spec.name,
     };
@@ -65,7 +70,7 @@ export function validate(specPath: string, files: Files, bundle: SchemaBundle): 
     return {
       command: "validate",
       status: "invalid",
-      problems: problemsOf(error),
+      problems: located(problemsOf(error), spec),
       spec: specPath,
       name: spec.name,
     };
@@ -74,7 +79,7 @@ export function validate(specPath: string, files: Files, bundle: SchemaBundle): 
 
 export async function compile(
   specPath: string,
-  options: Options,
+  options: { out?: string; base?: string },
   files: Files,
   bundle: SchemaBundle,
 ): Promise<Outcome> {
@@ -87,11 +92,15 @@ export async function compile(
   try {
     const result = compileSpec(spec, bundle);
     const { html } = await emitHtml(result, { title: spec.name, base: options.base ?? "cdn" });
-    files.write(outputPath, html);
+    try {
+      files.write(outputPath, html);
+    } catch (error) {
+      return unreadableOutcome("compile", (error as Error).message, specPath);
+    }
     return {
       command: "compile",
       status: "ok",
-      problems: result.warnings,
+      problems: located(result.warnings, spec),
       spec: specPath,
       name: spec.name,
       output: outputPath,
@@ -101,7 +110,7 @@ export async function compile(
     return {
       command: "compile",
       status: "invalid",
-      problems: problemsOf(error),
+      problems: located(problemsOf(error), spec),
       spec: specPath,
       name: spec.name,
     };

@@ -14,7 +14,6 @@ interface PackResult {
 
 interface Manifest {
   version: string;
-  bin?: Record<string, string>;
   private?: boolean;
   main?: string;
   types?: string;
