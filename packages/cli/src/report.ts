@@ -30,9 +30,6 @@ export interface Report {
   exitCode: number;
 }
 
-const counted = (problems: Problem[], severity: "error" | "warning") =>
-  problems.filter((problem) => (severity === "error" ? isError(problem) : !isError(problem)));
-
 /** Where a problem is, in the words the builder uses for a step's place in the timeline. */
 const at = (problem: Problem) =>
   problem.path === undefined ? "" : ` (step ${problem.path.map((index) => index + 1).join(".")})`;
@@ -43,8 +40,8 @@ export function payloadOf(outcome: Outcome, versions: Versions): Payload {
 }
 
 function lines(outcome: Outcome): { stdout: string[]; stderr: string[] } {
-  const warnings = counted(outcome.problems, "warning");
-  const errors = counted(outcome.problems, "error");
+  const warnings = outcome.problems.filter((problem) => !isError(problem));
+  const errors = outcome.problems.filter(isError);
   const stderr = [
     ...warnings.map((problem) => `warning: ${problem.message}${at(problem)}`),
     ...errors.map((problem) => `error: ${problem.message}${at(problem)}`),

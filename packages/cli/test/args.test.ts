@@ -43,9 +43,25 @@ describe("what the command line accepts", () => {
       command: "unreadable",
       message: 'unknown option "--quiet"',
     });
+    expect(parseArgs(["validate", "s.json", "--json=yes"])).toEqual({
+      command: "unreadable",
+      message: 'unknown option "--json"',
+    });
     expect(parseArgs(["schema", "s.json"])).toEqual({
       command: "unreadable",
       message: 'schema takes no spec file, got "s.json"',
+    });
+  });
+
+  it("takes an option's value attached to it as well as after it", () => {
+    expect(parseArgs(["compile", "s.json", "--out=study.html", "--base=./lib"])).toEqual({
+      command: "compile",
+      specPath: "s.json",
+      options: { json: false, out: "study.html", base: "./lib" },
+    });
+    expect(parseArgs(["compile", "s.json", "--out="])).toEqual({
+      command: "unreadable",
+      message: "--out needs a value",
     });
   });
 

@@ -5,7 +5,7 @@ import manifest from "../package.json" with { type: "json" };
 import { parseArgs, USAGE } from "./args.ts";
 import { compile, specSchemaDocument, validate, type Files } from "./commands.ts";
 import { reportOf } from "./report.ts";
-import { EXIT_CODES } from "./outcome.ts";
+import { EXIT_BROKEN, EXIT_CODES } from "./outcome.ts";
 
 const files: Files = {
   read: (path) => readFileSync(path, "utf8"),
@@ -42,12 +42,19 @@ if (invocation.command === "schema") {
   process.exit(0);
 }
 
-const outcome =
-  invocation.command === "validate"
-    ? validate(invocation.specPath, files, bundle)
-    : await compile(invocation.specPath, invocation.options, files, bundle);
-
-const report = reportOf(outcome, versions, invocation.options.json);
+// Anything the compiler throws that is not a spec problem is a fault here, not in the spec, and
+// exiting 1 for it would tell a caller the experiment is wrong.
+let report;
+try {
+  const outcome =
+    invocation.command === "validate"
+      ? validate(invocation.specPath, files, bundle)
+      : await compile(invocation.specPath, invocation.options, files, bundle);
+  report = reportOf(outcome, versions, invocation.options.json);
+} catch (error) {
+  console.error(`tachisto: ${(error as Error).message}`);
+  process.exit(EXIT_BROKEN);
+}
 if (report.stderr) process.stderr.write(report.stderr);
 if (report.stdout) process.stdout.write(report.stdout);
 process.exit(report.exitCode);
