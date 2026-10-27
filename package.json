@@ -43,7 +43,7 @@
     "dev:site": "npm run dev --workspace @tachisto/site",
     "prebuild:pages": "npm run build:packages",
     "build:pages": "npm run build --workspace @tachisto/site && npm run build --workspace @tachisto/builder && node apps/site/scripts/pages.ts",
-    "build:packages": "npm run build --workspace @tachisto/schemas && npm run build --workspace @tachisto/compiler && npm run build --workspace @tachisto/cli"
+    "build:packages": "npm run build --workspace @tachisto/schemas && npm run build --workspace @tachisto/compiler && npm run build --workspace @tachisto/cli && npm run build --workspace @tachisto/mcp"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

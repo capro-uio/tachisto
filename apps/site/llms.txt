@@ -18,6 +18,8 @@ that validates is a study that runs.
   `$schema` and an editor will complete and check the spec as it is written.
 - A parameter takes a literal, a `{ "var": "column" }` reference to a conditions column, or a
   `{ "code": "..." }` expression worked out when the trial starts.
+- A problem comes back with `path`, the indices of the step it is at, and `place`, the same in
+  words — not every index is a step, since a branch spends one on which of its paths.
 - Structural rules live in the schema; rules needing the whole spec at once — whether a referenced
   column exists upstream of the step reading it — live in the validator, which is what `validate`
   below runs.
@@ -25,10 +27,12 @@ that validates is a study that runs.
 ## Building one
 
 - Command line: `npx @tachisto/cli validate study.json` and `npx @tachisto/cli compile study.json`.
-  Add `--json` for one machine-readable envelope instead of lines. Exit `0` nothing wrong, `1` the
-  spec has errors, `2` the command could not be read, `70` a fault inside Tachisto. Warnings never
-  fail a command.
+  Add `--json` to either for one machine-readable envelope instead of lines. Exit `0` nothing
+  wrong, `1` the spec has errors, `2` the command could not be read, `70` a fault inside Tachisto.
+  Warnings never fail a command.
 - MCP: `npx @tachisto/mcp` serves `validate_spec`, `compile_spec` and `builder_link` over stdio.
+  It writes inside the directory it was started in, or `TACHISTO_MCP_ROOT`, so a spec cannot
+  choose where a file lands.
 - Neither needs a jsPsych plugin installed: the plugin schemas ship with the packages.
 
 ## Showing it to a person

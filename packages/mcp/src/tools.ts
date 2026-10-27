@@ -1,7 +1,15 @@
 import { readFileSync, writeFileSync } from "node:fs";
-import { basename } from "node:path";
-import { builderLink, type Problem } from "@tachisto/compiler";
-import { compile, payloadOf, unreadable, validate, type Files, type Payload } from "@tachisto/cli";
+import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { builderLink } from "@tachisto/compiler";
+import {
+  compile,
+  payloadOf,
+  problemLine,
+  unreadableOutcome,
+  validate,
+  type Files,
+  type Payload,
+} from "@tachisto/cli";
 import { loadBundle } from "@tachisto/schemas/bundle";
 import manifest from "../package.json" with { type: "json" };
 
@@ -14,10 +22,28 @@ export interface SpecSource {
   path?: string;
 }
 
-/** Shown in messages where a path would be, for a spec that was never a file. */
+/** Stands in for a path in messages about a spec that was never a file. */
 export const INLINE = "(the spec in this call)";
 
-const files = (source: SpecSource): { files: Files; label: string } => {
+/**
+ * Where this server may read and write. A spec can be written by anyone — including whatever an
+ * agent happened to be reading when it decided to call — so neither the spec nor the agent acting
+ * on it chooses where on the machine a file lands. Whoever starts the server chooses.
+ */
+export const rootDirectory = () => resolve(process.env.TACHISTO_MCP_ROOT ?? process.cwd());
+
+/** The path within the root, or why it is not one. */
+export function withinRoot(path: string): { path: string } | { problem: string } {
+  const root = rootDirectory();
+  const target = resolve(root, path);
+  const step = relative(root, target);
+  if (step === "" || step.startsWith("..") || isAbsolute(step)) {
+    return { problem: `${path} is outside ${root}` };
+  }
+  return { path: target };
+}
+
+const sourceFiles = (source: SpecSource): { files: Files; label: string } => {
   if (source.path !== undefined) {
     return {
       label: source.path,
@@ -30,7 +56,14 @@ const files = (source: SpecSource): { files: Files; label: string } => {
   const spec = source.spec ?? "";
   return {
     label: INLINE,
-    files: { read: () => spec, write: (path, text) => writeFileSync(path, text) },
+    files: {
+      // The seam says what it assumes: there is one spec here and no file to read beside it.
+      read: (path) => {
+        if (path !== INLINE) throw new Error(`there is no ${path} to read`);
+        return spec;
+      },
+      write: (path, text) => writeFileSync(path, text),
+    },
   };
 };
 
@@ -41,14 +74,7 @@ function sourceProblem({ spec, path }: SpecSource) {
   return undefined;
 }
 
-export const spoken = (problems: Problem[]) =>
-  problems
-    .map(
-      (problem) =>
-        `${problem.severity}: ${problem.message}` +
-        (problem.path ? ` (step ${problem.path.map((index) => index + 1).join(".")})` : ""),
-    )
-    .join("\n");
+export const spoken = (problems: Payload["problems"]) => problems.map(problemLine).join("\n");
 
 /** A tool's answer: the words for whoever is reading, and the payload for whatever is not. */
 export interface Answer {
@@ -57,23 +83,28 @@ export interface Answer {
   failed: boolean;
 }
 
-const answerOf = (payload: Payload, said: string): Answer => ({
-  text: payload.problems.length > 0 ? `${said}\n\n${spoken(payload.problems)}` : said,
-  payload,
-  failed: !payload.ok,
-});
+function answerOf(payload: Payload, said: string): Answer {
+  // The sentinel is not a path, and every other value of `spec` is one; absence says it better.
+  const { spec, ...rest } = payload;
+  const answered = spec === INLINE ? rest : payload;
+  return {
+    text: payload.problems.length > 0 ? `${said}\n\n${spoken(payload.problems)}` : said,
+    payload: answered,
+    failed: !payload.ok,
+  };
+}
 
 const refusal = (command: "validate" | "compile", message: string): Answer =>
   answerOf(
-    payloadOf(unreadable(command, message), versions),
-    `Nothing was ${command}d: ${message}.`,
+    payloadOf(unreadableOutcome(command, message), versions),
+    `Nothing was ${command === "validate" ? "validated" : "compiled"}: ${message}.`,
   );
 
 export function validateSpecSource(source: SpecSource): Answer {
   const asked = sourceProblem(source);
   if (asked) return refusal("validate", asked);
-  const { files: reading, label } = files(source);
-  const payload = payloadOf(validate(label, reading, bundle), versions);
+  const { files, label } = sourceFiles(source);
+  const payload = payloadOf(validate(label, files, bundle), versions);
   return answerOf(
     payload,
     payload.ok
@@ -85,17 +116,21 @@ export function validateSpecSource(source: SpecSource): Answer {
 export async function compileSpecSource(source: SpecSource, out?: string): Promise<Answer> {
   const asked = sourceProblem(source);
   if (asked) return refusal("compile", asked);
-  const { files: reading, label } = files(source);
-  const outputPath =
-    out ?? `${basename(label === INLINE ? "experiment.json" : label, ".json")}.html`;
-  const payload = payloadOf(
-    await compile(label, { json: true, out: outputPath }, reading, bundle),
-    versions,
-  );
+  const { files, label } = sourceFiles(source);
+  // Beside the spec when there is one, so a study lands where its spec lives rather than wherever
+  // the server happened to be started.
+  const fallback =
+    label === INLINE ? "experiment.html" : join(dirname(label), `${basename(label, ".json")}.html`);
+  const within = withinRoot(out === undefined || out === "" ? fallback : out);
+  if ("problem" in within) return refusal("compile", within.problem);
+  if (!within.path.endsWith(".html"))
+    return refusal("compile", "the study has to be an .html file");
+
+  const payload = payloadOf(await compile(label, { out: within.path }, files, bundle), versions);
   return answerOf(
     payload,
     payload.ok
-      ? `Wrote ${payload.output}, a study using ${payload.plugins?.length} plugin(s).`
+      ? `Wrote ${payload.output}, a study using ${payload.plugins?.length ?? 0} plugin(s).`
       : `${payload.name ?? label} was not compiled.`,
   );
 }

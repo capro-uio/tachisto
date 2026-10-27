@@ -38,7 +38,7 @@ jobs:
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: packages/compiler/coverage/lcov.info,packages/schemas/coverage/lcov.info,packages/cli/coverage/lcov.info,apps/builder/coverage/lcov.info,apps/site/coverage/lcov.info
+          files: packages/compiler/coverage/lcov.info,packages/schemas/coverage/lcov.info,packages/cli/coverage/lcov.info,packages/mcp/coverage/lcov.info,apps/builder/coverage/lcov.info,apps/site/coverage/lcov.info
           fail_ci_if_error: true
 
   schemas-up-to-date:

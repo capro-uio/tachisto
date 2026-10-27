@@ -392,7 +392,10 @@ something writing a spec can check its work as it goes:
 - `validate_spec` takes the spec whole (`spec`) or a file to read (`path`), and answers both in
   words and as the same JSON envelope the command line prints. A spec that will not run comes back
   marked as an error, so a caller cannot read past it.
-- `compile_spec` writes the HTML, and writes nothing when the spec has errors.
+- `compile_spec` writes the HTML, and writes nothing when the spec has errors. It writes inside
+  the directory the server was started in, or `TACHISTO_MCP_ROOT` when that is set: a spec can be
+  written by anyone, including whatever an agent was reading when it decided to call, so neither
+  the spec nor the agent picks where on the machine a file lands.
 - `builder_link` builds a `?spec=` link for a spec already published at an https address, for when
   a person should look at what was built.
 
