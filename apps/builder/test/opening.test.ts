@@ -96,16 +96,20 @@ describe("fetching a spec someone left somewhere", () => {
 
 describe("what someone pasted", () => {
   it("opens a spec pasted as JSON", async () => {
-    const spec = await specFromPasted(`  ${JSON.stringify(runnable)}\n`);
+    const { spec, url } = await specFromPasted(`  ${JSON.stringify(runnable)}\n`);
     expect(spec.name).toBe("beep");
+    // Pasted text is not an address, so there is no link to pass on afterwards.
+    expect(url).toBeUndefined();
   });
 
   it("fetches a spec pasted as an https address", async () => {
-    const spec = await specFromPasted(
+    const { spec, url } = await specFromPasted(
       " https://osf.io/study.json ",
       answering(JSON.stringify(runnable)),
     );
     expect(spec.name).toBe("beep");
+    // Trimmed, and reported back, so nothing has to work out the address a second time.
+    expect(url).toBe("https://osf.io/study.json");
   });
 
   it("refuses an address that is not https, and says nothing is there when nothing is", async () => {
@@ -119,7 +123,7 @@ describe("what someone pasted", () => {
   });
 
   it("reads a spec whose own text could be mistaken for a scheme", async () => {
-    const spec = await specFromPasted(JSON.stringify({ ...runnable, name: "a:b" }));
+    const { spec } = await specFromPasted(JSON.stringify({ ...runnable, name: "a:b" }));
     expect(spec.name).toBe("a:b");
   });
 });

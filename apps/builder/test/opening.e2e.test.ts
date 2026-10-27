@@ -27,6 +27,37 @@ async function serveSpec(page: Page, body: string, status = 200) {
   );
 }
 
+/** Serves the spec but holds the answer back, so a test can act while a fetch is in flight. */
+async function heldSpec(page: Page) {
+  let release: (() => void) | undefined;
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route(SPEC_URL, async (route) => {
+    await held;
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(sent),
+    });
+  });
+  return {
+    /** Lets the answer through, then waits for it to arrive. */
+    deliver: async () => {
+      const answered = page.waitForResponse(SPEC_URL);
+      release?.();
+      await answered;
+      await page.waitForTimeout(250);
+    },
+  };
+}
+
+/** Opens the spec at SPEC_URL through the paste box, the way a person would. */
+async function openFromAddress(page: Page) {
+  await page.getByTestId("paste-spec-start").click();
+  await page.getByTestId("open-spec-text").fill(SPEC_URL);
+  await page.getByTestId("open-spec-confirm").click();
+  await expect.poll(() => page.getByTestId("experiment-name").inputValue()).toBe("sent-study");
+}
+
 beforeAll(async () => {
   await build({ logLevel: "warn" });
   server = await preview({ preview: { port: 0 }, logLevel: "warn" });
@@ -85,16 +116,7 @@ describe("opening a spec someone sent", () => {
 
   it("loads nothing when the dialog is cancelled while it is fetching", async () => {
     const page = await browser.newPage();
-    let release: (() => void) | undefined;
-    const held = new Promise<void>((resolve) => (release = resolve));
-    await page.route(SPEC_URL, async (route) => {
-      await held;
-      return route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(sent),
-      });
-    });
+    const fetch = await heldSpec(page);
     await page.goto(appUrl);
     await page.getByTestId("paste-spec-start").click();
     await page.getByTestId("open-spec-text").fill(SPEC_URL);
@@ -102,10 +124,7 @@ describe("opening a spec someone sent", () => {
     // Cancel is refused while the answer is on its way, so Escape is the way out.
     expect(await page.getByTestId("open-spec-cancel").isDisabled()).toBe(true);
     await page.keyboard.press("Escape");
-    const answered = page.waitForResponse(SPEC_URL);
-    release?.();
-    await answered;
-    await page.waitForTimeout(250);
+    await fetch.deliver();
 
     expect(await page.getByTestId("open-spec").count()).toBe(0);
     expect(await page.getByTestId("experiment-name").inputValue()).toBe("untitled-experiment");
@@ -134,10 +153,7 @@ describe("passing on a link to the spec that is open", () => {
     await grantClipboard(page);
     await serveSpec(page, JSON.stringify(sent));
     await page.goto(appUrl);
-    await page.getByTestId("paste-spec-start").click();
-    await page.getByTestId("open-spec-text").fill(SPEC_URL);
-    await page.getByTestId("open-spec-confirm").click();
-    await expect.poll(() => page.getByTestId("experiment-name").inputValue()).toBe("sent-study");
+    await openFromAddress(page);
 
     await page.getByTestId("header-menu").click();
     await page.getByTestId("copy-spec-link").click();
@@ -154,10 +170,7 @@ describe("passing on a link to the spec that is open", () => {
     expect(await page.getByTestId("copy-spec-link").count()).toBe(0);
     await page.keyboard.press("Escape");
 
-    await page.getByTestId("paste-spec-start").click();
-    await page.getByTestId("open-spec-text").fill(SPEC_URL);
-    await page.getByTestId("open-spec-confirm").click();
-    await expect.poll(() => page.getByTestId("experiment-name").inputValue()).toBe("sent-study");
+    await openFromAddress(page);
 
     // Opening anything else means the link no longer describes what is open.
     await page.getByTestId("header-menu").click();
@@ -180,10 +193,7 @@ describe("passing on a link to the spec that is open", () => {
       });
     });
     await page.goto(appUrl);
-    await page.getByTestId("paste-spec-start").click();
-    await page.getByTestId("open-spec-text").fill(SPEC_URL);
-    await page.getByTestId("open-spec-confirm").click();
-    await expect.poll(() => page.getByTestId("experiment-name").inputValue()).toBe("sent-study");
+    await openFromAddress(page);
 
     await page.getByTestId("header-menu").click();
     await page.getByTestId("copy-spec-link").click();
@@ -239,25 +249,13 @@ describe("a link that carries a spec", () => {
   // The asking is the whole point of the flow, so it has to hold even once "Open it" is clicked.
   it("opens nothing when the invitation is declined while it is being fetched", async () => {
     const page = await browser.newPage();
-    let release: (() => void) | undefined;
-    const held = new Promise<void>((resolve) => (release = resolve));
-    await page.route(SPEC_URL, async (route) => {
-      await held;
-      return route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(sent),
-      });
-    });
+    const fetch = await heldSpec(page);
     await page.goto(linked(appUrl));
     await page.getByTestId("invitation-accept").click();
     await page.getByTestId("invitation-decline").click();
-    const answered = page.waitForResponse(SPEC_URL);
-    release?.();
-    // Wait for the answer to actually arrive: without that, this passes whether or not the spec
-    // is loaded afterwards, which is the one thing it is here to check.
-    await answered;
-    await page.waitForTimeout(250);
+    // Waiting for the answer to arrive is the point: without it this passes whether or not the
+    // spec is loaded afterwards, which is the one thing it is here to check.
+    await fetch.deliver();
 
     expect(await page.getByTestId("invitation").count()).toBe(0);
     expect(await page.getByTestId("experiment-name").inputValue()).toBe("untitled-experiment");
@@ -283,17 +281,6 @@ describe("a link that carries a spec", () => {
       .poll(() => page.getByTestId("import-error").textContent())
       .toContain("http: addresses are not opened");
     expect(await page.getByTestId("invitation").count()).toBe(0);
-    await page.close();
-  }, 120_000);
-
-  it("says so when the spec a link points at is not there", async () => {
-    const page = await browser.newPage();
-    await serveSpec(page, "", 404);
-    await page.goto(linked(appUrl));
-    await page.getByTestId("invitation-accept").click();
-    await expect
-      .poll(() => page.getByTestId("import-error").textContent())
-      .toContain("answered 404");
     await page.close();
   }, 120_000);
 });

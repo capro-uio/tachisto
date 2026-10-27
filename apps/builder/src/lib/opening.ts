@@ -50,22 +50,25 @@ export function linkTo(url: string, page: { origin: string; pathname: string }) 
   return link.href;
 }
 
-/** What counts as an address to fetch rather than a spec to read. */
-export const HTTPS = /^https:\/\//i;
+const HTTPS = /^https:\/\//i;
 const SOME_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
 
 /**
  * What someone pasted: the spec itself, or where it lives. One box takes both, because that is
  * how a spec arrives — in a message, or as a link to it.
  */
-export async function specFromPasted(text: string, fetcher: typeof fetch = fetch) {
+export async function specFromPasted(
+  text: string,
+  fetcher: typeof fetch = fetch,
+): Promise<{ spec: Spec; url?: string }> {
   const pasted = text.trim();
   if (pasted === "") throw new Error("there is nothing here to open");
-  if (HTTPS.test(pasted)) return await specFrom(pasted, fetcher);
+  // The caller needs to know whether this came from an address, and only here is that decided.
+  if (HTTPS.test(pasted)) return { spec: await specFrom(pasted, fetcher), url: pasted };
   // SOME_SCHEME is anchored and needs a leading letter, so a pasted spec never matches it.
   if (SOME_SCHEME.test(pasted)) throw new Error("only https addresses are opened");
   if (pasted.length > MAXIMUM_SPEC_LENGTH) throw new Error("it is larger than a spec can be");
-  return parseSpec(pasted);
+  return { spec: parseSpec(pasted) };
 }
 
 /**

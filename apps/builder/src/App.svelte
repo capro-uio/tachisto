@@ -38,19 +38,18 @@
   import OpenSpec from "./lib/OpenSpec.svelte";
   import { invitationFrom, isInvitation, linkTo, specFrom } from "./lib/opening.ts";
 
-  let importError = $state("");
-  let downloadError = $state("");
+  /** Whatever went wrong last, in one place: the header shows one line, not three. */
+  let notice = $state("");
 
   let pasting = $state(false);
   let opening = $state(false);
-  let copied = $state(false);
-  let copyProblem = $state("");
+  let copyStatus = $state("");
 
   // A link can carry a spec from anyone. Opening it is the reader's choice to make, not the
   // link's, because a spec holds code that runs for every participant the study reaches.
   const asked = invitationFrom(window.location.search);
   let invitation = $state(isInvitation(asked) ? asked : null);
-  if (asked && !isInvitation(asked)) importError = `That link cannot be opened: ${asked.problem}`;
+  if (asked && !isInvitation(asked)) notice = `That link cannot be opened: ${asked.problem}`;
 
   async function acceptInvitation() {
     if (!invitation) return;
@@ -64,12 +63,12 @@
       if (invitation !== accepted) return;
       loadSpec(spec, accepted.url);
       invitation = null;
-      importError = "";
+      notice = "";
       ui.tab = "timeline";
     } catch (error) {
       if (invitation !== accepted) return;
       // The invitation stays, so a spec that was briefly unreachable can be tried again.
-      importError = `The spec at ${accepted.url} ${(error as Error).message}`;
+      notice = `The spec at ${accepted.url} ${(error as Error).message}`;
     } finally {
       opening = false;
     }
@@ -82,11 +81,10 @@
     const link = linkTo(project.sourceUrl, window.location);
     try {
       await navigator.clipboard.writeText(link);
-      copyProblem = "";
-      copied = true;
-      setTimeout(() => (copied = false), 2000);
+      notice = "";
+      copyStatus = "Link copied";
     } catch {
-      copyProblem = `Could not copy the link; it is ${link}`;
+      notice = `Could not copy the link; it is ${link}`;
     }
   }
 
@@ -98,9 +96,9 @@
     preparing = true;
     try {
       await build();
-      downloadError = "";
+      notice = "";
     } catch (error) {
-      downloadError = `Not ready to download: ${(error as Error).message.split("\n")[0]}`;
+      notice = `Not ready to download: ${(error as Error).message.split("\n")[0]}`;
     } finally {
       preparing = false;
     }
@@ -154,7 +152,7 @@
 
   function openPastedSpec() {
     pasting = false;
-    importError = "";
+    notice = "";
     ui.tab = "timeline";
   }
 
@@ -166,9 +164,9 @@
     try {
       loadSpec(parseSpec(await file.text()));
       ui.tab = "timeline";
-      importError = "";
+      notice = "";
     } catch (error) {
-      importError = `Could not import ${file.name}: ${(error as Error).message}`;
+      notice = `Could not import ${file.name}: ${(error as Error).message}`;
     }
   }
 </script>
@@ -199,10 +197,8 @@
     bind:value={project.spec.name}
   />
   <span class="spacer"></span>
-  {#if importError || downloadError || copyProblem}
-    <p class="notice" data-testid="import-error">
-      {importError || downloadError || copyProblem}
-    </p>
+  {#if notice}
+    <p class="notice" data-testid="import-error">{notice}</p>
   {/if}
 
   <button
@@ -241,7 +237,7 @@
       >
       {#if project.sourceUrl}
         <button class="item" data-testid="copy-spec-link" onclick={copyLink}>
-          {copied ? "Link copied" : "Copy a link to this spec"}
+          {copyStatus || "Copy a link to this spec"}
         </button>
       {/if}
       <button

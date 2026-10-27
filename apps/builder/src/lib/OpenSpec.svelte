@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { HTTPS, specFromPasted } from "./opening.ts";
+  import { specFromPasted } from "./opening.ts";
   import { loadSpec } from "./project.svelte.ts";
 
   const { onopened, onclose }: { onopened: () => void; onclose: () => void } = $props();
@@ -17,11 +17,11 @@
     opening = true;
     const text = pasted.trim();
     try {
-      const spec = await specFromPasted(text);
+      const opened = await specFromPasted(text);
       // Fetching takes a moment, and the dialog can be dismissed while it does. Loading the spec
       // anyway would put a study someone just cancelled in front of them, over whatever was open.
       if (!sheet?.open) return;
-      loadSpec(spec, HTTPS.test(text) ? text : undefined);
+      loadSpec(opened.spec, opened.url);
       onopened();
     } catch (error) {
       if (!sheet?.open) return;
