@@ -26,7 +26,7 @@
   "scripts": {
     "test": "npm run test --workspaces --if-present",
     "coverage": "npm run test --workspaces --if-present -- --coverage",
-    "schemas": "npm run build --workspace @tachisto/schemas",
+    "schemas": "npm run extract --workspace @tachisto/schemas",
     "spec-schema": "npm run spec-schema --workspace @tachisto/compiler",
     "codemeta": "npm run codemeta --workspace @tachisto/compiler",
     "format": "prettier --write .",
@@ -35,7 +35,8 @@
     "typecheck": "tsc -p packages/schemas/tsconfig.json && tsc -p packages/compiler/tsconfig.json && npm run check --workspace @tachisto/builder && tsc -p apps/site/tsconfig.json",
     "dev": "npm run dev --workspace @tachisto/builder",
     "dev:site": "npm run dev --workspace @tachisto/site",
-    "build:pages": "npm run build --workspace @tachisto/site && npm run build --workspace @tachisto/builder && node apps/site/scripts/pages.ts"
+    "build:pages": "npm run build --workspace @tachisto/site && npm run build --workspace @tachisto/builder && node apps/site/scripts/pages.ts",
+    "build:packages": "npm run build --workspace @tachisto/schemas && npm run build --workspace @tachisto/compiler"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

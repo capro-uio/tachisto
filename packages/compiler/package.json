@@ -23,26 +23,29 @@
   "engines": {
     "node": ">=22.18"
   },
-  "main": "src/index.ts",
+  "main": "dist/src/index.js",
   "exports": {
-    ".": "./src/index.ts",
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    },
     "./spec-schema.json": "./spec-schema.json"
   },
-  "bin": {
-    "tachisto": "src/cli.ts"
-  },
   "files": [
-    "src",
-    "spec-schema.json"
+    "dist",
+    "spec-schema.json",
+    "README.md"
   ],
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
     "spec-schema": "node src/cli.ts schema",
     "codemeta": "node src/cli.ts codemeta",
-    "version": "npm run codemeta"
+    "version": "npm run codemeta",
+    "prepack": "npm run build"
   },
   "dependencies": {
     "@tachisto/schemas": "^0.0.2",
@@ -54,5 +57,6 @@
     "ajv": "^8.20.0",
     "jspsych": "^8.3.0",
     "playwright": "^1.56.0"
-  }
+  },
+  "types": "dist/src/index.d.ts"
 }

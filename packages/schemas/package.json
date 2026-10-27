@@ -22,25 +22,34 @@
   "engines": {
     "node": ">=22.18"
   },
-  "main": "src/index.ts",
+  "main": "dist/src/index.js",
   "exports": {
-    ".": "./src/index.ts",
-    "./files": "./src/files.ts",
-    "./plugin-schemas.json": "./plugin-schemas.json",
-    "./bundle": "./src/bundle.ts"
-  },
-  "bin": {
-    "tachisto-schemas": "src/cli.ts"
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    },
+    "./bundle": {
+      "types": "./dist/src/bundle.d.ts",
+      "default": "./dist/src/bundle.js"
+    },
+    "./files": {
+      "types": "./dist/src/files.d.ts",
+      "default": "./dist/src/files.js"
+    },
+    "./plugin-schemas.json": "./plugin-schemas.json"
   },
   "files": [
-    "src",
-    "plugin-schemas.json"
+    "dist",
+    "plugin-schemas.json",
+    "README.md"
   ],
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
-    "build": "node src/cli.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "extract": "node src/cli.ts",
+    "prepack": "npm run build",
     "test": "vitest run"
   },
   "devDependencies": {
@@ -97,5 +106,6 @@
     "@kurokida/jspsych-psychophysics": "5.1.0",
     "jspsych": "^8.3.0",
     "webgazer": "^3.5.3"
-  }
+  },
+  "types": "dist/src/index.d.ts"
 }

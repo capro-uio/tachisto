@@ -3,7 +3,10 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { format, resolveConfig } from "prettier";
 import { fileURLToPath } from "node:url";
-import { extractBundle, loadBundle } from "@tachisto/schemas";
+import { loadBundle } from "@tachisto/schemas";
+// The repository's own extraction, imported as source: it is not published, because it needs
+// every jsPsych plugin installed.
+import { extractBundle } from "../../schemas/src/extract.ts";
 import manifest from "../package.json" with { type: "json" };
 import { citationCff, toYaml, zenodoMetadata } from "./citation.ts";
 import { updateCodemeta, type Codemeta, type PackageManifest } from "./codemeta.ts";

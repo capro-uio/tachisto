@@ -58,6 +58,7 @@ npm test                 # unit tests plus two real-browser end-to-end runs
 npm run coverage         # the same, reporting coverage of the compiler, schemas and builder logic
 npm run typecheck
 npm run schemas          # regenerate packages/schemas/plugin-schemas.json, print coverage
+npm run build:packages   # build the published packages, as packing them does
 npm run spec-schema      # regenerate packages/compiler/spec-schema.json
 node packages/compiler/src/cli.ts compile examples/flanker.json
 ```
@@ -304,6 +305,13 @@ everything it exports, so a downloaded spec is ready to edit before anything is 
 
 `npm run spec-schema` regenerates `packages/compiler/spec-schema.json`, which the Pages deploy
 serves alongside the builder.
+
+The published packages ship compiled JavaScript and type declarations, built by `prepack` and so
+by `npm pack` and `npm publish`. They have to: Node refuses to strip types from anything under
+`node_modules`, on every version, so a package whose entry point is TypeScript cannot run once
+installed — however well it works inside this repository, where the workspaces are symlinks.
+`packages/compiler/test/install.test.ts` packs the tarballs, installs them somewhere else and runs
+them, which is the only way to see that.
 
 The schema encodes the structural rules — which step kinds exist, what each one requires, that a
 parameter may hold a `{ "var": "column" }` reference anywhere a literal is allowed, that a

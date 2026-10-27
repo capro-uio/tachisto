@@ -13,6 +13,9 @@ interface PackResult {
 interface Manifest {
   version: string;
   private?: boolean;
+  main?: string;
+  types?: string;
+  bin?: Record<string, string>;
   dependencies?: Record<string, string>;
   publishConfig?: { access?: string };
 }
@@ -66,13 +69,29 @@ describe("what the published packages carry", () => {
   it("ships the schemas the compiler reads at runtime", () => {
     const paths = shippedPaths("@tachisto/schemas");
     expect(paths).toContain("plugin-schemas.json");
-    expect(paths).toContain("src/bundle.ts");
+    expect(paths).toContain("dist/src/bundle.js");
   });
 
-  it("ships the compiler's command line and the spec schema", () => {
+  it("ships the compiler built, and the spec schema beside it", () => {
     const paths = shippedPaths("@tachisto/compiler");
-    expect(paths).toContain("src/cli.ts");
+    expect(paths).toContain("dist/src/index.js");
     expect(paths).toContain("spec-schema.json");
+  });
+
+  // An entry point npm installs has to be in the tarball, built, and reachable by its own path.
+  it.each(PUBLISHED)("ships what %s's manifest points at", (workspace) => {
+    const pkg = manifest(workspace);
+    const paths = shippedPaths(workspace);
+    const named = [pkg.main, pkg.types, ...Object.values(pkg.bin ?? {})].filter(
+      (path): path is string => typeof path === "string",
+    );
+    for (const path of named) expect(paths, `${workspace} -> ${path}`).toContain(path);
+  });
+
+  it.each(PUBLISHED)("tells %s's users their rights and what it is", (workspace) => {
+    const paths = shippedPaths(workspace);
+    expect(paths).toContain("LICENSE");
+    expect(paths).toContain("README.md");
   });
 
   it.each(PUBLISHED)("leaves %s's own tests out", (workspace) => {
