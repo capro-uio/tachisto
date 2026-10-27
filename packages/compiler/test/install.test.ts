@@ -1,12 +1,14 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 
 const root = fileURLToPath(new URL("../../..", import.meta.url));
-const PUBLISHED = ["@tachisto/schemas", "@tachisto/compiler"];
+import { publishedWorkspaces } from "./published.ts";
+
+const PUBLISHED = publishedWorkspaces();
 
 let consumer: string;
 
@@ -47,6 +49,17 @@ beforeAll(() => {
   run("npm", ["install", "--no-audit", "--no-fund", "--prefer-offline"], consumer);
 }, 600_000);
 
+/** Whatever each installed package puts on the PATH, as npm would place it. */
+function installedBinaries() {
+  return PUBLISHED.flatMap((workspace) => {
+    const directory = workspace.replace("@tachisto/", "packages/");
+    const pkg = JSON.parse(readFileSync(join(root, directory, "package.json"), "utf8")) as {
+      bin?: Record<string, string>;
+    };
+    return Object.keys(pkg.bin ?? {});
+  });
+}
+
 describe("the packages as someone else installs them", () => {
   it.each(PUBLISHED)("imports %s from an install", (name) => {
     const imported = run(
@@ -81,6 +94,16 @@ describe("the packages as someone else installs them", () => {
         paths.filter((path) => path.endsWith(".ts") && !path.endsWith(".d.ts")),
         name,
       ).toEqual([]);
+    }
+  });
+
+  // A bin is the whole surface of two of these packages, and the shebang, the execute bit and the
+  // runtime dependencies behind it are all things only an install shows.
+  it("runs every binary it puts on the PATH", () => {
+    const binaries = installedBinaries();
+    for (const binary of binaries) {
+      const output = run(join(consumer, "node_modules", ".bin", binary), ["--help"], consumer);
+      expect(output.length, binary).toBeGreaterThan(0);
     }
   });
 });

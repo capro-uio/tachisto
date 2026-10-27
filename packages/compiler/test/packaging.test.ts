@@ -2,9 +2,11 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { publishedWorkspaces } from "./published.ts";
 
-const PUBLISHED = ["@tachisto/schemas", "@tachisto/compiler"];
 const root = fileURLToPath(new URL("../../..", import.meta.url));
+
+const PUBLISHED = publishedWorkspaces();
 
 interface PackResult {
   files: { path: string }[];
@@ -26,11 +28,15 @@ const packs = new Map<string, PackResult>();
 function packed(workspace: string): PackResult {
   const already = packs.get(workspace);
   if (already) return already;
-  const output = execFileSync("npm", ["pack", "--dry-run", "--json", "--workspace", workspace], {
-    cwd: root,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "ignore"],
-  });
+  const output = execFileSync(
+    "npm",
+    ["pack", "--dry-run", "--json", "--ignore-scripts", "--workspace", workspace],
+    {
+      cwd: root,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    },
+  );
   const result = (JSON.parse(output) as PackResult[])[0];
   packs.set(workspace, result);
   return result;
@@ -40,6 +46,8 @@ function manifest(workspace: string): Manifest {
   const directory = workspace.replace("@tachisto/", "packages/");
   return JSON.parse(readFileSync(`${root}/${directory}/package.json`, "utf8")) as Manifest;
 }
+
+/** The same question the tarball answers, asked of a package that is already built. */
 
 function shippedPaths(workspace: string) {
   return packed(workspace).files.map((file) => file.path);
@@ -72,10 +80,16 @@ describe("what the published packages carry", () => {
     expect(paths).toContain("dist/src/bundle.js");
   });
 
-  it("ships the compiler built, and the spec schema beside it", () => {
-    const paths = shippedPaths("@tachisto/compiler");
-    expect(paths).toContain("dist/src/index.js");
-    expect(paths).toContain("spec-schema.json");
+  it("ships the spec schema beside the compiler", () => {
+    expect(shippedPaths("@tachisto/compiler")).toContain("spec-schema.json");
+  });
+
+  // The bug this branch exists to fix: a tarball of TypeScript cannot run under node_modules.
+  it.each(PUBLISHED)("ships no TypeScript for %s to run", (workspace) => {
+    const source = shippedPaths(workspace).filter(
+      (path) => path.endsWith(".ts") && !path.endsWith(".d.ts"),
+    );
+    expect(source).toEqual([]);
   });
 
   // An entry point npm installs has to be in the tarball, built, and reachable by its own path.

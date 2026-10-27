@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.base.json",
+  // Emit options only. A relative path here would resolve against this file, not the package
+  // extending it, so `outDir` stays with each package.
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "rewriteRelativeImportExtensions": true
+  }
+}

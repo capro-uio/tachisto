@@ -34,7 +34,9 @@
     "prelint": "npm run build:packages",
     "lint": "eslint .",
     "typecheck": "tsc -p packages/schemas/tsconfig.json && tsc -p packages/compiler/tsconfig.json && npm run check --workspace @tachisto/builder && tsc -p apps/site/tsconfig.json",
+    "predev": "npm run build:packages",
     "dev": "npm run dev --workspace @tachisto/builder",
+    "predev:site": "npm run build:packages",
     "dev:site": "npm run dev --workspace @tachisto/site",
     "build:pages": "npm run build --workspace @tachisto/site && npm run build --workspace @tachisto/builder && node apps/site/scripts/pages.ts",
     "build:packages": "npm run build --workspace @tachisto/schemas && npm run build --workspace @tachisto/compiler"

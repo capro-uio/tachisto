@@ -1,11 +1,6 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "../../tsconfig.build.base.json",
   "compilerOptions": {
-    "noEmit": false,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "rewriteRelativeImportExtensions": true,
     "outDir": "dist"
   },
   "include": ["src"],
