@@ -95,8 +95,9 @@ describe("what the published packages carry", () => {
     expect(source).toEqual([]);
   });
 
-  it("ships the command line built", () => {
+  it("ships the command line and the MCP server built", () => {
     expect(shippedPaths("@tachisto/cli")).toContain("dist/src/main.js");
+    expect(shippedPaths("@tachisto/mcp")).toContain("dist/src/main.js");
   });
 
   // Two packages claiming one name would install over each other.
@@ -109,6 +110,7 @@ describe("what the published packages carry", () => {
     }
     expect([...claims].filter(([, owners]) => owners.length > 1)).toEqual([]);
     expect(claims.get("tachisto")).toEqual(["@tachisto/cli"]);
+    expect(claims.get("tachisto-mcp")).toEqual(["@tachisto/mcp"]);
   });
 
   // An entry point npm installs has to be in the tarball, built, and reachable by its own path.

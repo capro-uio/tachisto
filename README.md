@@ -44,6 +44,7 @@ maintainable by a small team.
 | `@tachisto/schemas`  | Turns every plugin's `info.parameters` plus the JSDoc in its shipped `.d.ts` into JSON Schema, so the builder's forms are generated rather than hand-written |
 | `@tachisto/compiler` | Compiles a declarative spec to jsPsych source and emits an HTML experiment                                                                                   |
 | `@tachisto/cli`      | `tachisto validate`, `compile` and `schema`, for building a study from a spec without the builder — or without a person                                      |
+| `@tachisto/mcp`      | Validating, compiling and a link back to the builder, served over MCP, so an agent authoring a study checks it where it works                                |
 | `@tachisto/brand`    | Colours, type, logos and the brand book (`packages/brand/BRAND.md`), shared by the builder and the website                                                   |
 
 The builder lives in `apps/builder`, and the website that introduces it in `apps/site`.
@@ -378,6 +379,26 @@ function (such as a button's `button_html`) holds the function itself, and accep
 any other parameter's code is a single expression worked out when the trial starts, with `jsPsych`
 in scope. The compiler checks that each piece of code is exactly one JavaScript expression before
 emitting it.
+
+### From an agent
+
+`@tachisto/mcp` serves the same two commands over MCP, plus a link back to the builder, so
+something writing a spec can check its work as it goes:
+
+```json
+{ "mcpServers": { "tachisto": { "command": "npx", "args": ["-y", "@tachisto/mcp"] } } }
+```
+
+- `validate_spec` takes the spec whole (`spec`) or a file to read (`path`), and answers both in
+  words and as the same JSON envelope the command line prints. A spec that will not run comes back
+  marked as an error, so a caller cannot read past it.
+- `compile_spec` writes the HTML, and writes nothing when the spec has errors.
+- `builder_link` builds a `?spec=` link for a spec already published at an https address, for when
+  a person should look at what was built.
+
+Every tool's description names the published schema, because that is where the spec format is
+written down. <https://www.capro.dev/tachisto/llms.txt> says the same things in one page: what a
+spec is, where its schema lives, and what builds a study from one.
 
 ## Sending a study to someone else
 

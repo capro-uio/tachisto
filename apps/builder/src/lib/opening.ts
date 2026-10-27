@@ -1,3 +1,4 @@
+import { builderLink, SPEC_PARAMETER } from "@tachisto/compiler";
 import type { Spec } from "@tachisto/compiler";
 import { parseSpec } from "./project.svelte.ts";
 
@@ -13,8 +14,6 @@ import { parseSpec } from "./project.svelte.ts";
  */
 export const MAXIMUM_SPEC_LENGTH = 8 * 1024 * 1024;
 
-const QUERY_PARAMETER = "spec";
-
 export interface Invitation {
   url: string;
   /** The host alone, which is what tells someone whether to trust what they are about to open. */
@@ -27,7 +26,7 @@ export interface Invitation {
  * `data:` are not addresses anyone sends in good faith.
  */
 export function invitationFrom(search: string): Invitation | { problem: string } | null {
-  const asked = new URLSearchParams(search).get(QUERY_PARAMETER);
+  const asked = new URLSearchParams(search).get(SPEC_PARAMETER);
   if (asked === null || asked.trim() === "") return null;
   let url: URL;
   try {
@@ -43,11 +42,10 @@ export const isInvitation = (
   invitation: Invitation | { problem: string } | null,
 ): invitation is Invitation => invitation !== null && "url" in invitation;
 
-/** A link that opens this spec in this builder, for passing on to whoever needs to see it. */
+/** A link that opens this spec in whichever builder is running, which in development is not the
+ *  published one. */
 export function linkTo(url: string, page: { origin: string; pathname: string }) {
-  const link = new URL(page.pathname, page.origin);
-  link.searchParams.set(QUERY_PARAMETER, url);
-  return link.href;
+  return builderLink(url, new URL(page.pathname, page.origin).href);
 }
 
 const HTTPS = /^https:\/\//i;

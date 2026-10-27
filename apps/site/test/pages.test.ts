@@ -15,12 +15,14 @@ describe("assemblePages", () => {
       site: join(dir, "site"),
       builder: join(dir, "builder"),
       specSchema: join(dir, "spec-schema.json"),
+      llms: join(dir, "llms.txt"),
     };
     mkdirSync(sources.site);
     mkdirSync(sources.builder);
     writeFileSync(join(sources.site, "index.html"), "site");
     writeFileSync(join(sources.builder, "index.html"), "builder");
     writeFileSync(sources.specSchema, "{}");
+    writeFileSync(sources.llms, "# Tachisto\n");
   });
 
   afterEach(() => rmSync(dir, { recursive: true, force: true }));
@@ -31,6 +33,8 @@ describe("assemblePages", () => {
     expect(readFileSync(join(out, "index.html"), "utf8")).toBe("site");
     expect(readFileSync(join(out, "app", "index.html"), "utf8")).toBe("builder");
     expect(readFileSync(join(out, "spec-schema.json"), "utf8")).toBe("{}");
+    // Where an agent looks, and where a spec's `$schema` points: both at the root.
+    expect(readFileSync(join(out, "llms.txt"), "utf8")).toBe("# Tachisto\n");
   });
 
   it("starts from an empty folder, so nothing from an earlier build is served", () => {
@@ -53,6 +57,7 @@ describe("repositoryLayout", () => {
   it("names builds that exist in this repository", () => {
     const { sources } = repositoryLayout(join(import.meta.dirname, "../../.."));
     expect(existsSync(sources.specSchema)).toBe(true);
+    expect(existsSync(sources.llms)).toBe(true);
     expect(sources.site).toMatch(/apps[\\/]site[\\/]dist$/);
     expect(sources.builder).toMatch(/apps[\\/]builder[\\/]dist$/);
   });
