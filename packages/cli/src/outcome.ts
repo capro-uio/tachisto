@@ -20,6 +20,9 @@ export interface Outcome {
 
 export const EXIT_CODES: Record<Status, number> = { ok: 0, invalid: 1, unreadable: 2 };
 
+/** Something went wrong inside Tachisto, which is a different thing from a spec being wrong. */
+export const EXIT_BROKEN = 70;
+
 export const unreadable = (
   command: Outcome["command"],
   message: string,

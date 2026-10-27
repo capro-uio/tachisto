@@ -325,11 +325,12 @@ npx @tachisto/cli compile study.json    # write study.html, ready to host
 npx @tachisto/cli schema                # the spec schema this release was built against
 ```
 
-It exits `0` when there is nothing wrong, `1` when the spec has errors, and `2` when the command
-itself could not be read — a missing file, a file that is not JSON, a file that is not a spec.
-Those three are kept apart on purpose: a spec that never reached the validator says nothing about
-the experiment. Warnings do not fail a command, because a step nothing ends is sometimes what was
-meant.
+It exits `0` when there is nothing wrong, `1` when the spec has errors, `2` when the command
+itself could not be read — a missing file, a file that is not JSON, a file that is not a spec —
+and `70` when something went wrong inside Tachisto, which is a bug rather than anything about the
+spec. Those are kept apart on purpose: a spec that never reached the validator says nothing about
+the experiment, and neither does a fault in the compiler. Warnings do not fail a command, because
+a step nothing ends is sometimes what was meant.
 
 `--json` answers with one object instead of lines, so a program reads the problems rather than
 parsing prose. Every command answers in the same envelope, and a field is added rather than
@@ -349,6 +350,11 @@ renamed or repurposed:
 
 A problem's `path` is where it is, as indices through the timeline; the lines meant for a person
 count those from one, the JSON leaves them as they are.
+
+A compiled page carries the spec's code and HTML, and runs it for every participant — so
+compiling a spec from someone else is running their code on your participants' machines. The
+trust that asks for is the same as the builder's, described in
+[Code, and projects from other people](#code-and-projects-from-other-people).
 
 Compiling needs no jsPsych plugin installed. The plugin schemas are extracted once and committed,
 not read when a spec is compiled, so `npx @tachisto/cli` is the whole of the install. Regenerating

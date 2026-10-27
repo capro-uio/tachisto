@@ -39,12 +39,17 @@ export function parseArgs(argv: string[]): Invocation {
       files.push(arg);
       continue;
     }
-    const name = arg.slice(2);
-    if (name === "json") {
+    const [name, attached] = arg.slice(2).split(/=(.*)/s, 2);
+    if (name === "json" && attached === undefined) {
       options.json = true;
       continue;
     }
-    if (!TAKES_VALUE.has(name)) return unreadable(`unknown option "${arg}"`);
+    if (!TAKES_VALUE.has(name)) return unreadable(`unknown option "--${name}"`);
+    if (attached !== undefined) {
+      if (attached === "") return unreadable(`--${name} needs a value`);
+      options[name as "out" | "base"] = attached;
+      continue;
+    }
     const value = rest[index + 1];
     // A missing value would otherwise swallow the next flag and read as a file name.
     if (value === undefined || value.startsWith("--")) return unreadable(`--${name} needs a value`);
