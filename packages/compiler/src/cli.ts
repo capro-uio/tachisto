@@ -1,41 +1,33 @@
 #!/usr/bin/env node
 import { readFileSync, writeFileSync } from "node:fs";
-import { basename, dirname, join } from "node:path";
+import { dirname, join } from "node:path";
 import { format, resolveConfig } from "prettier";
 import { fileURLToPath } from "node:url";
-import { loadBundle } from "@tachisto/schemas";
 // The repository's own extraction, imported as source: it is not published, because it needs
 // every jsPsych plugin installed.
 import { extractBundle } from "../../schemas/src/extract.ts";
 import manifest from "../package.json" with { type: "json" };
 import { citationCff, toYaml, zenodoMetadata } from "./citation.ts";
 import { updateCodemeta, type Codemeta, type PackageManifest } from "./codemeta.ts";
-import { compileReport } from "./cli-report.ts";
-import { compileSpec } from "./compile.ts";
-import { emitHtml } from "./targets/html.ts";
 import { specSchema } from "./spec-schema.ts";
-import { SpecError } from "./validate.ts";
-import type { Spec } from "./types.ts";
 
 function optionValue(name: string, fallback: string) {
   const index = process.argv.indexOf(`--${name}`);
   return index === -1 ? fallback : process.argv[index + 1];
 }
 
-const [command, specPath] = process.argv.slice(2);
+const [command] = process.argv.slice(2);
 
-if (!["compile", "schema", "codemeta"].includes(command) || (command === "compile" && !specPath)) {
+// Regenerating the files this repository commits. Compiling a spec is `tachisto`, from
+// @tachisto/cli, which needs none of the plugin packages this does.
+if (!["schema", "codemeta"].includes(command)) {
   console.error(
-    "usage: tachisto compile <spec.json> [--out <file>] [--base <cdn|path>]\n" +
-      "       tachisto schema [--out <file>]\n" +
-      "       tachisto codemeta [--out <file>]",
+    "usage: node src/cli.ts schema [--out <file>]\n" +
+      "       node src/cli.ts codemeta [--out <file>]",
   );
   process.exit(2);
 }
 
-// `schema` and `codemeta` regenerate files from the plugins installed here, so they extract
-// afresh. Compiling reads the schemas shipped with the package instead, which is all an installed
-// copy has: extraction imports all 49 plugin packages, and no consumer should need them.
 if (command === "schema") {
   const { bundle: schemas, report } = await extractBundle();
   const outputPath = optionValue(
@@ -79,21 +71,4 @@ if (command === "codemeta") {
       [outputPath, citationPath, zenodoPath].join(", "),
   );
   process.exit(0);
-}
-
-const schemas = loadBundle();
-const spec = JSON.parse(readFileSync(specPath, "utf8")) as Spec;
-
-try {
-  const result = compileSpec(spec, schemas);
-  const { html } = await emitHtml(result, { title: spec.name, base: optionValue("base", "cdn") });
-  const outputPath = optionValue("out", `${basename(specPath, ".json")}.html`);
-  writeFileSync(outputPath, html);
-  const report = compileReport(spec.name, result, outputPath);
-  for (const warning of report.warnings) console.warn(warning);
-  console.log(report.summary);
-} catch (error) {
-  if (!(error instanceof SpecError)) throw error;
-  console.error(error.message);
-  process.exit(1);
 }

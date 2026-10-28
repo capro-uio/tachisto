@@ -69,9 +69,12 @@ describe("what the published packages carry", () => {
 
   // A release bumps every package together, and a range left behind would publish a compiler that
   // installs the previous release's schemas — `^0.0.2` admits no other version to correct it.
-  it("asks for the schemas release it is published beside", () => {
-    const { dependencies } = manifest("@tachisto/compiler");
-    expect(dependencies?.["@tachisto/schemas"]).toBe(`^${manifest("@tachisto/schemas").version}`);
+  it.each(PUBLISHED)("asks %s for the sibling releases it is published beside", (workspace) => {
+    const { dependencies } = manifest(workspace);
+    for (const [name, range] of Object.entries(dependencies ?? {})) {
+      if (!name.startsWith("@tachisto/")) continue;
+      expect(range, name).toBe(`^${manifest(name).version}`);
+    }
   });
 
   it("ships the schemas the compiler reads at runtime", () => {
@@ -90,6 +93,22 @@ describe("what the published packages carry", () => {
       (path) => path.endsWith(".ts") && !path.endsWith(".d.ts"),
     );
     expect(source).toEqual([]);
+  });
+
+  it("ships the command line built", () => {
+    expect(shippedPaths("@tachisto/cli")).toContain("dist/src/main.js");
+  });
+
+  // Two packages claiming one name would install over each other.
+  it("gives each binary one owner", () => {
+    const claims = new Map<string, string[]>();
+    for (const workspace of PUBLISHED) {
+      for (const binary of Object.keys(manifest(workspace).bin ?? {})) {
+        claims.set(binary, [...(claims.get(binary) ?? []), workspace]);
+      }
+    }
+    expect([...claims].filter(([, owners]) => owners.length > 1)).toEqual([]);
+    expect(claims.get("tachisto")).toEqual(["@tachisto/cli"]);
   });
 
   // An entry point npm installs has to be in the tarball, built, and reachable by its own path.

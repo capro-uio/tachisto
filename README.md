@@ -43,6 +43,7 @@ maintainable by a small team.
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `@tachisto/schemas`  | Turns every plugin's `info.parameters` plus the JSDoc in its shipped `.d.ts` into JSON Schema, so the builder's forms are generated rather than hand-written |
 | `@tachisto/compiler` | Compiles a declarative spec to jsPsych source and emits an HTML experiment                                                                                   |
+| `@tachisto/cli`      | `tachisto validate`, `compile` and `schema`, for building a study from a spec without the builder — or without a person                                      |
 | `@tachisto/brand`    | Colours, type, logos and the brand book (`packages/brand/BRAND.md`), shared by the builder and the website                                                   |
 
 The builder lives in `apps/builder`, and the website that introduces it in `apps/site`.
@@ -55,12 +56,12 @@ npm run dev              # the builder at http://localhost:5180
 npm run dev:site         # the website at http://localhost:5181
 npm run build:pages      # the website, with the builder under app/, in dist-pages/ as Pages serves it
 npm test                 # unit tests plus two real-browser end-to-end runs
-npm run coverage         # the same, reporting coverage of the compiler, schemas and builder logic
+npm run coverage         # the same, reporting coverage of the compiler, schemas, cli and builder logic
 npm run typecheck
 npm run schemas          # regenerate packages/schemas/plugin-schemas.json, print coverage
 npm run build:packages   # build the published packages, as packing them does
 npm run spec-schema      # regenerate packages/compiler/spec-schema.json
-node packages/compiler/src/cli.ts compile examples/flanker.json
+node packages/cli/src/main.ts compile examples/flanker.json
 ```
 
 The acceptance test for the UI builds `examples/flanker.json` by clicking through the app and
@@ -313,6 +314,56 @@ installed — however well it works inside this repository, where the workspaces
 `packages/compiler/test/install.test.ts` packs the tarballs, installs them somewhere else and runs
 them, which is the only way to see that.
 
+### From the command line
+
+A spec is the whole study, so anything that can write one can build a study — a person who would
+rather type than click, or a program doing it on someone's behalf. `@tachisto/cli` is that door:
+
+```sh
+npx @tachisto/cli validate study.json   # is this a study that will run?
+npx @tachisto/cli compile study.json    # write study.html, ready to host
+npx @tachisto/cli schema                # the spec schema this release was built against
+```
+
+It exits `0` when there is nothing wrong, `1` when the spec has errors, `2` when the command
+itself could not be read — a missing file, a file that is not JSON, a file that is not a spec —
+and `70` when something went wrong inside Tachisto, which is a bug rather than anything about the
+spec. Those are kept apart on purpose: a spec that never reached the validator says nothing about
+the experiment, and neither does a fault in the compiler. Warnings do not fail a command, because
+a step nothing ends is sometimes what was meant.
+
+`--json` answers with one object instead of lines, so a program reads the problems rather than
+parsing prose. `validate` and `compile` answer in the same envelope, and a field is added rather
+than renamed or repurposed — `schema` takes no `--json`, because what it hands back is a JSON
+document already:
+
+```json
+{
+  "tachisto": "0.0.2",
+  "jspsych": "8.3.0",
+  "command": "validate",
+  "ok": false,
+  "spec": "study.json",
+  "name": "my-experiment",
+  "problems": [{ "message": "the timeline has no steps", "severity": "error" }]
+}
+```
+
+A problem's `path` is where it is, as indices through the timeline, and its `place` says the same
+in words — "step 2, otherwise, step 1". Both, because a program acts on the indices and a reader
+cannot: not every index is a step, since a branch spends one on which of its paths, so counting
+them all as steps would name a step that does not exist.
+
+A compiled page carries the spec's code and HTML, and runs it for every participant — so
+compiling a spec from someone else is running their code on your participants' machines. The
+trust that asks for is the same as the builder's, described in
+[Code, and projects from other people](#code-and-projects-from-other-people).
+
+Compiling needs no jsPsych plugin installed. The plugin schemas are extracted once and committed,
+not read when a spec is compiled, so `npx @tachisto/cli` is the whole of the install. Regenerating
+them from the installed plugins is the other half of that split and a maintainer's job:
+`npm run schemas` for `plugin-schemas.json`, `npm run spec-schema` for the spec's own schema.
+
 The schema encodes the structural rules — which step kinds exist, what each one requires, that a
 parameter may hold a `{ "var": "column" }` reference anywhere a literal is allowed, that a
 parameter may instead hold `{ "code": "..." }`, that uploading data needs an experiment id.
@@ -327,6 +378,29 @@ function (such as a button's `button_html`) holds the function itself, and accep
 any other parameter's code is a single expression worked out when the trial starts, with `jsPsych`
 in scope. The compiler checks that each piece of code is exactly one JavaScript expression before
 emitting it.
+
+## Sending a study to someone else
+
+A spec is one file, and it is the whole study — so a study travels the way any file does. Send it,
+and whoever receives it opens it in the builder and sees what you built: the timeline, the
+conditions table, the parameters of every step, the preview.
+
+The builder takes it three ways. **Open a project…** reads a `.json` file from disk. **Open a spec
+someone sent…** takes the spec pasted straight in, which is what arrives in a message — or the
+https address it lives at, if it is somewhere like OSF or a repository. And a link of the form
+`https://www.capro.dev/tachisto/app/?spec=<address>` opens that address directly, so a collaborator
+needs one click. **Copy a link to this spec** builds that link for whatever address the open spec
+came from.
+
+A link is an invitation, not an instruction. Following one shows where the spec comes from and
+waits: nothing is fetched until it is accepted, because a spec carries the code and HTML that run
+for every participant the study reaches — see
+[Code, and projects from other people](#code-and-projects-from-other-people). Declining while it
+is being fetched still opens nothing, which is what makes the asking real rather than a formality.
+Accepting replaces whatever is open, so it asks about that too — the work being discarded belongs
+to whoever is reading, not to whoever sent the link. Only `https` addresses are opened, so what
+arrives cannot be rewritten on the way, and an answer too long to be a spec is refused rather than
+parsed.
 
 ## Code, and projects from other people
 

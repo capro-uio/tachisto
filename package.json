@@ -24,7 +24,9 @@
     "apps/*"
   ],
   "scripts": {
+    "pretest": "npm run build:packages",
     "test": "npm run test --workspaces --if-present",
+    "precoverage": "npm run build:packages",
     "coverage": "npm run test --workspaces --if-present -- --coverage",
     "schemas": "npm run extract --workspace @tachisto/schemas",
     "spec-schema": "npm run spec-schema --workspace @tachisto/compiler",
@@ -33,13 +35,15 @@
     "format:check": "prettier --check .",
     "prelint": "npm run build:packages",
     "lint": "eslint .",
-    "typecheck": "tsc -p packages/schemas/tsconfig.json && tsc -p packages/compiler/tsconfig.json && npm run check --workspace @tachisto/builder && tsc -p apps/site/tsconfig.json",
+    "pretypecheck": "npm run build:packages",
+    "typecheck": "tsc -p packages/schemas/tsconfig.json && tsc -p packages/compiler/tsconfig.json && tsc -p packages/cli/tsconfig.json && npm run check --workspace @tachisto/builder && tsc -p apps/site/tsconfig.json",
     "predev": "npm run build:packages",
     "dev": "npm run dev --workspace @tachisto/builder",
     "predev:site": "npm run build:packages",
     "dev:site": "npm run dev --workspace @tachisto/site",
+    "prebuild:pages": "npm run build:packages",
     "build:pages": "npm run build --workspace @tachisto/site && npm run build --workspace @tachisto/builder && node apps/site/scripts/pages.ts",
-    "build:packages": "npm run build --workspace @tachisto/schemas && npm run build --workspace @tachisto/compiler"
+    "build:packages": "npm run build --workspace @tachisto/schemas && npm run build --workspace @tachisto/compiler && npm run build --workspace @tachisto/cli"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
