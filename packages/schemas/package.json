@@ -1,20 +1,55 @@
 {
   "name": "@tachisto/schemas",
   "version": "0.0.2",
-  "private": true,
+  "description": "JSON Schema for every jsPsych plugin, extracted from each plugin's own info.parameters and the JSDoc in its shipped type declarations.",
+  "keywords": [
+    "jsPsych",
+    "json-schema",
+    "psychology",
+    "behavioural experiments"
+  ],
+  "homepage": "https://www.capro.dev/tachisto/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/capro-uio/tachisto.git",
+    "directory": "packages/schemas"
+  },
+  "bugs": {
+    "url": "https://github.com/capro-uio/tachisto/issues"
+  },
   "license": "MIT",
   "type": "module",
-  "main": "src/index.ts",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "main": "dist/src/index.js",
   "exports": {
-    ".": "./src/index.ts",
-    "./files": "./src/files.ts",
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    },
+    "./bundle": {
+      "types": "./dist/src/bundle.d.ts",
+      "default": "./dist/src/bundle.js"
+    },
+    "./files": {
+      "types": "./dist/src/files.d.ts",
+      "default": "./dist/src/files.js"
+    },
     "./plugin-schemas.json": "./plugin-schemas.json"
   },
-  "bin": {
-    "tachisto-schemas": "src/cli.ts"
+  "files": [
+    "dist",
+    "plugin-schemas.json",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
-    "build": "node --experimental-strip-types src/cli.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "extract": "node src/cli.ts",
+    "prepack": "npm run build",
     "test": "vitest run"
   },
   "devDependencies": {
@@ -71,5 +106,6 @@
     "@kurokida/jspsych-psychophysics": "5.1.0",
     "jspsych": "^8.3.0",
     "webgazer": "^3.5.3"
-  }
+  },
+  "types": "dist/src/index.d.ts"
 }

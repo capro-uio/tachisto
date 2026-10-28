@@ -1,4 +1,4 @@
-export { extractBundle } from "./extract.ts";
+export { loadBundle } from "./bundle.ts";
 export { BROWSER_BUNDLE, JSPSYCH_STYLESHEET, integrityOf } from "./files.ts";
 export { PLUGIN_LABELS } from "./titles.ts";
 export type { PluginFamily, PluginLabel } from "./titles.ts";

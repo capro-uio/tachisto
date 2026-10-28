@@ -1,9 +1,9 @@
-import schemaFile from "@tachisto/schemas/plugin-schemas.json";
-import type { ParameterSchema, SchemaBundle, Variants } from "@tachisto/schemas";
+import { loadBundle } from "@tachisto/schemas/bundle";
+import type { ParameterSchema, Variants } from "@tachisto/schemas";
 import { takesFunction } from "@tachisto/compiler";
 import { codeSeed } from "./code.ts";
 
-export const schemas = schemaFile as unknown as SchemaBundle;
+export const schemas = loadBundle();
 
 /** A plugin's schema, looked up as an own property: a spec's plugin name is not to be trusted. */
 export function pluginSchema(plugin: string) {
