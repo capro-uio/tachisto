@@ -29,14 +29,27 @@ export const INLINE = "(the spec in this call)";
 /**
  * Where this server may read and write. A spec can be written by anyone — including whatever an
  * agent happened to be reading when it decided to call — so neither the spec nor the agent acting
- * on it chooses where on the machine a file lands. Whoever starts the server chooses.
- */
-/**
- * Where this server may read and write. A spec can be written by anyone — including whatever an
- * agent happened to be reading when it decided to call — so neither the spec nor the agent acting
  * on it chooses which files on the machine are touched. Whoever starts the server chooses.
  */
 export const rootDirectory = () => resolve(process.env.TACHISTO_MCP_ROOT ?? process.cwd());
+
+/**
+ * Where a path really lands, for a path that need not exist yet: the deepest ancestor that does
+ * exist, resolved, with the rest hung back off it. Resolving only a path that already exists
+ * would read a link standing over a file about to be written as though it were a directory.
+ */
+function settle(target: string): string {
+  const rest: string[] = [];
+  let at = target;
+  while (!existsSync(at)) {
+    const above = dirname(at);
+    // A root is its own parent; there is nothing further up to resolve this against.
+    if (above === at) return target;
+    rest.unshift(basename(at));
+    at = above;
+  }
+  return join(realpathSync(at), ...rest);
+}
 
 /** The path within the root, or why it is not one. */
 export function withinRoot(path: string): { path: string } | { problem: string } {
@@ -46,9 +59,11 @@ export function withinRoot(path: string): { path: string } | { problem: string }
   if (step === "" || step.startsWith("..") || isAbsolute(step)) {
     return { problem: `${path} is outside ${root}` };
   }
-  // A link inside the root can still point out of it, and writing follows it.
-  const settled = existsSync(target) ? realpathSync(target) : join(realpathSync(root), step);
-  if (relative(realpathSync(root), settled).startsWith("..")) {
+  // A link inside the root can still point out of it, and writing follows it — including a link
+  // in a directory above a file that is not there yet.
+  const settled = settle(target);
+  const walked = relative(realpathSync(root), settled);
+  if (walked === "" || walked.startsWith("..") || isAbsolute(walked)) {
     return { problem: `${path} leads outside ${root}` };
   }
   return { path: settled };

@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -129,6 +129,30 @@ describe("where a study may be written", () => {
     expect("path" in inside && inside.path).toContain(join("out", "study.html"));
     expect(withinRoot("..")).toHaveProperty("problem");
     expect(withinRoot(".")).toHaveProperty("problem");
+  });
+
+  // The escape this guard exists to stop: confinement that resolved only paths already there
+  // would take a link standing over a file about to be written for a directory, and follow it.
+  it("refuses to write through a link that leads out of the root", async () => {
+    const outside = mkdtempSync(join(tmpdir(), "tachisto-mcp-outside-"));
+    symlinkSync(outside, join(workspace, "away"), "dir");
+
+    expect(withinRoot("away/study.html")).toHaveProperty("problem");
+    const answer = await compileSpecSource({ spec: asText(runnable) }, "away/study.html");
+    expect(answer.failed).toBe(true);
+    expect(answer.text).toContain("leads outside");
+    expect(existsSync(join(outside, "study.html"))).toBe(false);
+  });
+
+  it("refuses to read through one too", () => {
+    const outside = mkdtempSync(join(tmpdir(), "tachisto-mcp-outside-"));
+    writeFileSync(join(outside, "study.json"), asText(runnable));
+    symlinkSync(join(outside, "study.json"), join(workspace, "linked.json"), "file");
+
+    const answer = validateSpecSource({ path: "linked.json" });
+    expect(answer.failed).toBe(true);
+    expect(answer.text).toContain("There is no spec to check at linked.json");
+    expect(spoken(answer.payload.problems)).toContain("leads outside");
   });
 
   it("falls back to a name of its own when none is given", async () => {
