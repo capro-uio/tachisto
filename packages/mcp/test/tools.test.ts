@@ -1,7 +1,17 @@
-import { existsSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  linkSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   compileSpecSource,
   INLINE,
@@ -11,11 +21,22 @@ import {
   withinRoot,
 } from "../src/tools.ts";
 
-const workspace = mkdtempSync(join(tmpdir(), "tachisto-mcp-"));
+const trees: string[] = [];
+const temporary = (name: string) => {
+  const made = mkdtempSync(join(tmpdir(), name));
+  trees.push(made);
+  return made;
+};
+
+const workspace = temporary("tachisto-mcp-");
 
 // Whoever starts the server chooses where it may write; here that is this test.
 beforeAll(() => {
   process.env.TACHISTO_MCP_ROOT = workspace;
+});
+
+afterAll(() => {
+  for (const tree of trees) rmSync(tree, { recursive: true, force: true });
 });
 
 const runnable = {
@@ -131,10 +152,10 @@ describe("where a study may be written", () => {
     expect(withinRoot(".")).toHaveProperty("problem");
   });
 
-  // The escape this guard exists to stop: confinement that resolved only paths already there
-  // would take a link standing over a file about to be written for a directory, and follow it.
-  it("refuses to write through a link that leads out of the root", async () => {
-    const outside = mkdtempSync(join(tmpdir(), "tachisto-mcp-outside-"));
+  // The escape this guard exists to stop: a link standing over the study, taken for the plain
+  // name of a file about to be written, and followed out of the root when it is written.
+  it("refuses to write through a directory link that leads out of the root", async () => {
+    const outside = temporary("tachisto-mcp-outside-");
     symlinkSync(outside, join(workspace, "away"), "dir");
 
     expect(withinRoot("away/study.html")).toHaveProperty("problem");
@@ -144,8 +165,64 @@ describe("where a study may be written", () => {
     expect(existsSync(join(outside, "study.html"))).toBe(false);
   });
 
+  // Whether a path exists is not whether anything is there: a link with nothing at the far end
+  // does not exist, and is followed all the same by whatever writes through it.
+  it("refuses one whose target is not there either", async () => {
+    const outside = temporary("tachisto-mcp-outside-");
+    const absent = join(outside, "taken.html");
+    symlinkSync(absent, join(workspace, "dangling.html"), "file");
+
+    expect(withinRoot("dangling.html")).toHaveProperty("problem");
+    const answer = await compileSpecSource({ spec: asText(runnable) }, "dangling.html");
+    expect(answer.failed).toBe(true);
+    expect(answer.text).toContain("leads outside");
+    expect(existsSync(absent)).toBe(false);
+  });
+
+  // The refusal is about where a link goes, not that it is one; inside the root is still inside.
+  it("still writes through a link that stays inside the root", async () => {
+    mkdirSync(join(workspace, "studies"), { recursive: true });
+    symlinkSync(join(workspace, "studies", "later.html"), join(workspace, "later.html"), "file");
+
+    const answer = await compileSpecSource({ spec: asText(runnable) }, "later.html");
+    expect(answer.failed).toBe(false);
+    expect(readFileSync(join(workspace, "studies", "later.html"), "utf8")).toContain("<html");
+  });
+
+  // No path tells a hard link apart from the file it shares, so the name is replaced rather
+  // than written through, and whatever else points at that file keeps it.
+  it("leaves a file outside the root alone when a hard link to it stands in the way", async () => {
+    const outside = temporary("tachisto-mcp-outside-");
+    const kept = join(outside, "notes.txt");
+    writeFileSync(kept, "not a study");
+    linkSync(kept, join(workspace, "linked.html"));
+
+    const answer = await compileSpecSource({ spec: asText(runnable) }, "linked.html");
+    expect(answer.failed).toBe(false);
+    expect(readFileSync(kept, "utf8")).toBe("not a study");
+    expect(readFileSync(join(workspace, "linked.html"), "utf8")).toContain("<html");
+  });
+
+  it("refuses a link that circles back to the root, and a ring of them", () => {
+    symlinkSync(workspace, join(workspace, "self"), "dir");
+    expect(withinRoot("self")).toHaveProperty("problem");
+
+    symlinkSync(join(workspace, "ring-b"), join(workspace, "ring-a"), "file");
+    symlinkSync(join(workspace, "ring-a"), join(workspace, "ring-b"), "file");
+    const ring = withinRoot("ring-a");
+    expect(ring).toHaveProperty("problem");
+    expect("problem" in ring && ring.problem).toContain("cannot be resolved inside");
+  });
+
+  // Half a study is worse than none: whatever the move leaves behind has to be cleared up.
+  it("leaves nothing behind when the study cannot be written", async () => {
+    const answer = await compileSpecSource({ spec: asText(runnable) }, "no-such-place/study.html");
+    expect(answer.failed).toBe(true);
+    expect(readdirSync(workspace).filter((name) => name.endsWith(".part"))).toEqual([]);
+  });
+
   it("refuses to read through one too", () => {
-    const outside = mkdtempSync(join(tmpdir(), "tachisto-mcp-outside-"));
+    const outside = temporary("tachisto-mcp-outside-");
     writeFileSync(join(outside, "study.json"), asText(runnable));
     symlinkSync(join(outside, "study.json"), join(workspace, "linked.json"), "file");
 
@@ -160,6 +237,23 @@ describe("where a study may be written", () => {
     expect(answer.failed).toBe(false);
     expect(answer.payload.output).toContain("experiment.html");
     expect(readFileSync(join(workspace, "experiment.html"), "utf8")).toContain("<html");
+  });
+});
+
+// A client's config can name a directory before anyone has made it, and every call then has to
+// say so rather than throwing the host's filesystem error back through the protocol.
+describe("a root the server cannot use", () => {
+  it("answers that the root is wrong instead of failing to answer", async () => {
+    const absent = join(workspace, "never-made");
+    process.env.TACHISTO_MCP_ROOT = absent;
+    try {
+      expect(withinRoot("study.html")).toHaveProperty("problem");
+      const answer = await compileSpecSource({ spec: asText(runnable) }, "study.html");
+      expect(answer.failed).toBe(true);
+      expect(answer.text).toContain("is not a directory this server can read and write");
+    } finally {
+      process.env.TACHISTO_MCP_ROOT = workspace;
+    }
   });
 });
 

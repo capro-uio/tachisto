@@ -1,4 +1,4 @@
-import { existsSync, realpathSync } from "node:fs";
+import { lstatSync, readlinkSync, realpathSync, renameSync, rmSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { builderLink } from "@tachisto/compiler";
 import {
@@ -33,22 +33,32 @@ export const INLINE = "(the spec in this call)";
  */
 export const rootDirectory = () => resolve(process.env.TACHISTO_MCP_ROOT ?? process.cwd());
 
+/** What the kernel follows before it gives up, so a ring of links ends here too. */
+const LINKS = 32;
+
 /**
- * Where a path really lands, for a path that need not exist yet: the deepest ancestor that does
- * exist, resolved, with the rest hung back off it. Resolving only a path that already exists
- * would read a link standing over a file about to be written as though it were a directory.
+ * Where a path really lands, for a path that need not exist yet: the deepest ancestor that is
+ * there, resolved, with the rest hung back off it. Asking whether a path exists is not the same
+ * as asking whether anything is there — a link whose target is missing does not exist and is
+ * still followed when written through — so this walks by what lstat can see and follows a link
+ * by hand, which is what realpathSync cannot do while the far end is absent.
  */
-function settle(target: string): string {
+function settle(target: string, links = LINKS): string {
   const rest: string[] = [];
   let at = target;
-  while (!existsSync(at)) {
+  while (lstatSync(at, { throwIfNoEntry: false }) === undefined) {
     const above = dirname(at);
-    // A root is its own parent; there is nothing further up to resolve this against.
-    if (above === at) return target;
+    // Unreachable: target is absolute, so this ends at a filesystem root, which is always there.
+    // It stays as the thing that stops the walk being unbounded.
+    if (above === at) return at;
     rest.unshift(basename(at));
     at = above;
   }
-  return join(realpathSync(at), ...rest);
+  if (!lstatSync(at).isSymbolicLink()) return join(realpathSync(at), ...rest);
+  if (links === 0) throw new Error(`${target} is a ring of links`);
+  // A link's target is read relative to the directory holding the link, which is there to resolve.
+  const pointed = resolve(realpathSync(dirname(at)), readlinkSync(at));
+  return settle(join(pointed, ...rest), links - 1);
 }
 
 /** The path within the root, or why it is not one. */
@@ -56,13 +66,26 @@ export function withinRoot(path: string): { path: string } | { problem: string }
   const root = rootDirectory();
   const target = resolve(root, path);
   const step = relative(root, target);
+  // isAbsolute is Windows, where a path on another drive is not relative to this one at all.
   if (step === "" || step.startsWith("..") || isAbsolute(step)) {
     return { problem: `${path} is outside ${root}` };
   }
+  let real: string;
+  try {
+    real = realpathSync(root);
+  } catch {
+    // Said once, about the root, rather than as a problem with whichever spec arrived first.
+    return { problem: `${root} is not a directory this server can read and write` };
+  }
   // A link inside the root can still point out of it, and writing follows it — including a link
-  // in a directory above a file that is not there yet.
-  const settled = settle(target);
-  const walked = relative(realpathSync(root), settled);
+  // in a directory above a file that is not there yet, and one whose target is not there either.
+  let settled: string;
+  try {
+    settled = settle(target);
+  } catch (error) {
+    return { problem: `${path} cannot be resolved inside ${root}: ${(error as Error).message}` };
+  }
+  const walked = relative(real, settled);
   if (walked === "" || walked.startsWith("..") || isAbsolute(walked)) {
     return { problem: `${path} leads outside ${root}` };
   }
@@ -82,7 +105,20 @@ export function confinedFiles(): Files {
   };
   return {
     read: (path) => nodeFiles.read(guard(path)),
-    write: (path, text) => nodeFiles.write(guard(path), text),
+    // Written beside where it is going and moved into place: a rename replaces the name rather
+    // than the file it stands for, so a link or a second hard link already sitting there keeps
+    // whatever it pointed at, and a study that fails half way through leaves nothing behind.
+    write: (path, text) => {
+      const settled = guard(path);
+      const temp = join(dirname(settled), `.${basename(settled)}.${process.pid}.part`);
+      try {
+        nodeFiles.write(temp, text);
+        renameSync(temp, settled);
+      } catch (error) {
+        rmSync(temp, { force: true });
+        throw error;
+      }
+    },
   };
 }
 
