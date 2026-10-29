@@ -78,12 +78,41 @@ describe("what a study inherits from the one it replaces", () => {
 
     confinedFiles().write("close.html", "<html>second</html>");
 
-    expect(statSync(close).mode & 0o777).toBe(0o600);
-    expect(readFileSync(close, "utf8")).toContain("second");
+    // Read before asking after it, so this is not a question followed by a use of the answer.
+    const written = readFileSync(close, "utf8");
+    const reach = statSync(close).mode & 0o777;
+    expect(written).toContain("second");
+    expect(reach).toBe(0o600);
   });
 
   it("leaves a study written where there was none at the usual reach", () => {
     confinedFiles().write("fresh.html", "<html>a study</html>");
-    expect(statSync(join(workspace, "fresh.html")).mode & 0o777).not.toBe(0o600);
+    const usual = statSync(join(workspace, "fresh.html")).mode & 0o777;
+    expect(usual).not.toBe(0o600);
+    expect(usual & 0o111).toBe(0);
+  });
+
+  // Lending works one way only. A study left open to everyone does not keep a later one open.
+  it("does not lend a reach wider than a study written where there was none", () => {
+    const open = join(workspace, "open.html");
+    writeFileSync(open, "<html>first</html>");
+    chmodSync(open, 0o666);
+
+    confinedFiles().write("open.html", "<html>second</html>");
+
+    const usual = statSync(join(workspace, "fresh.html")).mode & 0o777;
+    expect(statSync(open).mode & 0o777).toBe(usual);
+  });
+
+  it("lends nothing but the reading and writing of it", () => {
+    const marked = join(workspace, "marked.html");
+    writeFileSync(marked, "<html>first</html>");
+    chmodSync(marked, 0o2755);
+
+    confinedFiles().write("marked.html", "<html>second</html>");
+
+    // The set-group-id bit would otherwise travel onto a file now owned by whoever served it.
+    expect(statSync(marked).mode & 0o7000).toBe(0);
+    expect(statSync(marked).mode & 0o111).toBe(0);
   });
 });

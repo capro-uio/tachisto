@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import {
-  chmodSync,
   lstatSync,
   readlinkSync,
   realpathSync,
@@ -45,6 +44,9 @@ export const rootDirectory = () => resolve(process.env.TACHISTO_MCP_ROOT ?? proc
 
 /** What the kernel follows before it gives up, so a ring of links ends here too. */
 const LINKS = 32;
+
+/** As far as a study reaches when it is written where there was none; umask narrows it further. */
+const REACH = 0o666;
 
 /**
  * Where a path really lands, for a path that need not exist yet: the deepest ancestor that is
@@ -127,15 +129,24 @@ export function confinedFiles(): Files {
       // vouch for it. Hence a name nobody can guess, and `wx`, which refuses rather than
       // follows if anything is already sitting there — a planted link included.
       const temp = join(dirname(settled), `.tachisto-${randomUUID()}.part`);
+      // What a study replaces lends it its reach, so one that was kept close stays close. Only
+      // the read and write bits travel, and only as far as a study written where there was none
+      // would reach anyway, so this never opens one up and nothing else rides along. Set as it
+      // is created rather than after, or the contents would sit there open for the moment in
+      // between.
+      const had = statSync(settled, { throwIfNoEntry: false });
+      const reach = (had?.mode ?? REACH) & REACH;
       try {
-        writeFileSync(temp, text, { encoding: "utf8", flag: "wx" });
-        // A fresh file is readable by everyone; a study written over one that was kept close
-        // should stay that way, so the mode travels with the contents rather than the name.
-        const had = statSync(settled, { throwIfNoEntry: false });
-        if (had) chmodSync(temp, had.mode);
+        writeFileSync(temp, text, { encoding: "utf8", flag: "wx", mode: reach });
         renameSync(temp, settled);
       } catch (error) {
-        rmSync(temp, { force: true });
+        // Whatever went wrong is the thing worth reporting, so clearing up must not speak over
+        // it: a plant at this name is told by the error from the write, not by the tidying.
+        try {
+          rmSync(temp, { force: true });
+        } catch {
+          // Nothing to say: the error below is the one that matters.
+        }
         throw error;
       }
     },
