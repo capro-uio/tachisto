@@ -211,7 +211,8 @@ describe("where a study may be written", () => {
     symlinkSync(join(workspace, "ring-a"), join(workspace, "ring-b"), "file");
     const ring = withinRoot("ring-a");
     expect(ring).toHaveProperty("problem");
-    expect("problem" in ring && ring.problem).toContain("cannot be resolved inside");
+    // Named, so that running out of patience is told apart from running out of stack.
+    expect("problem" in ring && ring.problem).toContain("is a ring of links");
   });
 
   // Half a study is worse than none: whatever the move leaves behind has to be cleared up.

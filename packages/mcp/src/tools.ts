@@ -1,4 +1,14 @@
-import { lstatSync, readlinkSync, realpathSync, renameSync, rmSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import {
+  chmodSync,
+  lstatSync,
+  readlinkSync,
+  realpathSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { builderLink } from "@tachisto/compiler";
 import {
@@ -49,14 +59,17 @@ function settle(target: string, links = LINKS): string {
   while (lstatSync(at, { throwIfNoEntry: false }) === undefined) {
     const above = dirname(at);
     // Unreachable: target is absolute, so this ends at a filesystem root, which is always there.
-    // It stays as the thing that stops the walk being unbounded.
-    if (above === at) return at;
+    // It stays as the thing that stops the walk being unbounded, and answers honestly if reached.
+    if (above === at) return join(at, ...rest);
     rest.unshift(basename(at));
     at = above;
   }
   if (!lstatSync(at).isSymbolicLink()) return join(realpathSync(at), ...rest);
   if (links === 0) throw new Error(`${target} is a ring of links`);
   // A link's target is read relative to the directory holding the link, which is there to resolve.
+  // `..` in that target is collapsed here but walked by the kernel, so the two can disagree when
+  // a directory link stands before it. What keeps that from reaching outside is that the write
+  // goes to the path this returns and never to the one the caller named — do not change that.
   const pointed = resolve(realpathSync(dirname(at)), readlinkSync(at));
   return settle(join(pointed, ...rest), links - 1);
 }
@@ -110,9 +123,16 @@ export function confinedFiles(): Files {
     // whatever it pointed at, and a study that fails half way through leaves nothing behind.
     write: (path, text) => {
       const settled = guard(path);
-      const temp = join(dirname(settled), `.${basename(settled)}.${process.pid}.part`);
+      // This name is new, so it has no resolved form to be judged within: nothing above can
+      // vouch for it. Hence a name nobody can guess, and `wx`, which refuses rather than
+      // follows if anything is already sitting there — a planted link included.
+      const temp = join(dirname(settled), `.tachisto-${randomUUID()}.part`);
       try {
-        nodeFiles.write(temp, text);
+        writeFileSync(temp, text, { encoding: "utf8", flag: "wx" });
+        // A fresh file is readable by everyone; a study written over one that was kept close
+        // should stay that way, so the mode travels with the contents rather than the name.
+        const had = statSync(settled, { throwIfNoEntry: false });
+        if (had) chmodSync(temp, had.mode);
         renameSync(temp, settled);
       } catch (error) {
         rmSync(temp, { force: true });
