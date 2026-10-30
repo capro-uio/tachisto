@@ -1,13 +1,5 @@
 import { randomUUID } from "node:crypto";
-import {
-  lstatSync,
-  readlinkSync,
-  realpathSync,
-  renameSync,
-  rmSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
+import { lstatSync, realpathSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { builderLink } from "@tachisto/compiler";
 import {
@@ -42,41 +34,21 @@ export const INLINE = "(the spec in this call)";
  */
 export const rootDirectory = () => resolve(process.env.TACHISTO_MCP_ROOT ?? process.cwd());
 
-/** What the kernel follows before it gives up, so a ring of links ends here too. */
-const LINKS = 32;
-
 /** As far as a study reaches when it is written where there was none; umask narrows it further. */
 const REACH = 0o666;
 
 /**
- * Where a path really lands, for a path that need not exist yet: the deepest ancestor that is
- * there, resolved, with the rest hung back off it. Asking whether a path exists is not the same
- * as asking whether anything is there — a link whose target is missing does not exist and is
- * still followed when written through — so this walks by what lstat can see and follows a link
- * by hand, which is what realpathSync cannot do while the far end is absent.
+ * The path within the root, or why it is not one.
+ *
+ * Only the directory meant to hold a study is resolved, and it has to be there to be resolved —
+ * which is what makes this answerable rather than guessed at. Working out where a path that is
+ * not there yet would land means predicting the kernel's walk, and a prediction wrong by one
+ * link is a way out of the root. A directory that is there can simply be asked.
+ *
+ * A link at the end is not followed. Where it points is not where the caller asked to write, and
+ * a study landing somewhere other than the name it was given is worth refusing even when that
+ * somewhere is inside the root.
  */
-function settle(target: string, links = LINKS): string {
-  const rest: string[] = [];
-  let at = target;
-  while (lstatSync(at, { throwIfNoEntry: false }) === undefined) {
-    const above = dirname(at);
-    // Unreachable: target is absolute, so this ends at a filesystem root, which is always there.
-    // It stays as the thing that stops the walk being unbounded, and answers honestly if reached.
-    if (above === at) return join(at, ...rest);
-    rest.unshift(basename(at));
-    at = above;
-  }
-  if (!lstatSync(at).isSymbolicLink()) return join(realpathSync(at), ...rest);
-  if (links === 0) throw new Error(`${target} is a ring of links`);
-  // A link's target is read relative to the directory holding the link, which is there to resolve.
-  // `..` in that target is collapsed here but walked by the kernel, so the two can disagree when
-  // a directory link stands before it. What keeps that from reaching outside is that the write
-  // goes to the path this returns and never to the one the caller named — do not change that.
-  const pointed = resolve(realpathSync(dirname(at)), readlinkSync(at));
-  return settle(join(pointed, ...rest), links - 1);
-}
-
-/** The path within the root, or why it is not one. */
 export function withinRoot(path: string): { path: string } | { problem: string } {
   const root = rootDirectory();
   const target = resolve(root, path);
@@ -92,17 +64,20 @@ export function withinRoot(path: string): { path: string } | { problem: string }
     // Said once, about the root, rather than as a problem with whichever spec arrived first.
     return { problem: `${root} is not a directory this server can read and write` };
   }
-  // A link inside the root can still point out of it, and writing follows it — including a link
-  // in a directory above a file that is not there yet, and one whose target is not there either.
-  let settled: string;
+  let holder: string;
   try {
-    settled = settle(target);
-  } catch (error) {
-    return { problem: `${path} cannot be resolved inside ${root}: ${(error as Error).message}` };
+    holder = realpathSync(dirname(target));
+  } catch {
+    return { problem: `there is no ${dirname(path)} in ${root} to hold ${basename(path)}` };
   }
-  const walked = relative(real, settled);
-  if (walked === "" || walked.startsWith("..") || isAbsolute(walked)) {
+  // The holder is the root itself for most studies, so standing still is not going outside.
+  const walked = relative(real, holder);
+  if (walked.startsWith("..") || isAbsolute(walked)) {
     return { problem: `${path} leads outside ${root}` };
+  }
+  const settled = join(holder, basename(target));
+  if (lstatSync(settled, { throwIfNoEntry: false })?.isSymbolicLink()) {
+    return { problem: `${path} is a link, and a study is neither written nor read through one` };
   }
   return { path: settled };
 }
