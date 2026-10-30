@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { lstatSync, realpathSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { lstatSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { builderLink } from "@tachisto/compiler";
 import {
   compile,
@@ -34,6 +34,12 @@ export const INLINE = "(the spec in this call)";
  */
 export const rootDirectory = () => resolve(process.env.TACHISTO_MCP_ROOT ?? process.cwd());
 
+/**
+ * Whether a step from the root climbs out of it. The whole step, or its first part, has to be
+ * the way up: a directory is allowed to be called `..archive`, and refusing it is not safety.
+ */
+const climbs = (step: string) => step === ".." || step.startsWith(`..${sep}`);
+
 /** As far as a study reaches when it is written where there was none; umask narrows it further. */
 const REACH = 0o666;
 
@@ -48,13 +54,17 @@ const REACH = 0o666;
  * A link at the end is not followed. Where it points is not where the caller asked to write, and
  * a study landing somewhere other than the name it was given is worth refusing even when that
  * somewhere is inside the root.
+ *
+ * What is left is the gap between asking and writing: another process with the run of the root
+ * could swap a directory for a link in between. Node offers no openat or O_NOFOLLOW to close it,
+ * and the exclusive create and the rename already hold the last step of the path.
  */
 export function withinRoot(path: string): { path: string } | { problem: string } {
   const root = rootDirectory();
   const target = resolve(root, path);
   const step = relative(root, target);
   // isAbsolute is Windows, where a path on another drive is not relative to this one at all.
-  if (step === "" || step.startsWith("..") || isAbsolute(step)) {
+  if (step === "" || climbs(step) || isAbsolute(step)) {
     return { problem: `${path} is outside ${root}` };
   }
   let real: string;
@@ -72,11 +82,19 @@ export function withinRoot(path: string): { path: string } | { problem: string }
   }
   // The holder is the root itself for most studies, so standing still is not going outside.
   const walked = relative(real, holder);
-  if (walked.startsWith("..") || isAbsolute(walked)) {
+  if (climbs(walked) || isAbsolute(walked)) {
     return { problem: `${path} leads outside ${root}` };
   }
   const settled = join(holder, basename(target));
-  if (lstatSync(settled, { throwIfNoEntry: false })?.isSymbolicLink()) {
+  let standing;
+  try {
+    standing = lstatSync(settled, { throwIfNoEntry: false });
+  } catch {
+    // Only a missing one is quiet; a name too long, a file where a directory was wanted or a
+    // byte that cannot be in a name are all answers about the path, not faults to throw.
+    return { problem: `${path} is not a name this server can use` };
+  }
+  if (standing?.isSymbolicLink()) {
     return { problem: `${path} is a link, and a study is neither written nor read through one` };
   }
   return { path: settled };
@@ -109,8 +127,11 @@ export function confinedFiles(): Files {
       // would reach anyway, so this never opens one up and nothing else rides along. Set as it
       // is created rather than after, or the contents would sit there open for the moment in
       // between.
-      const had = statSync(settled, { throwIfNoEntry: false });
-      const reach = (had?.mode ?? REACH) & REACH;
+      // lstat, not stat: this is the last look at a name the guard has already judged, and
+      // between the two a link could have been put there. A link's own mode is not a study's
+      // to inherit, and following it would take the reach of a file outside the root.
+      const had = lstatSync(settled, { throwIfNoEntry: false });
+      const reach = ((had?.isSymbolicLink() ? undefined : had?.mode) ?? REACH) & REACH;
       try {
         writeFileSync(temp, text, { encoding: "utf8", flag: "wx", mode: reach });
         renameSync(temp, settled);

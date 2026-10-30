@@ -252,6 +252,27 @@ describe("where a study may be written", () => {
     expect(existsSync(join(outside, "in", "crooked.html"))).toBe(false);
   });
 
+  // A name that cannot be used is still an answer about the name. Only a missing one is quiet,
+  // and every other errno used to come back as a thrown filesystem error instead of a refusal.
+  it("answers about a name it cannot use rather than failing to answer", async () => {
+    writeFileSync(join(workspace, "notadir.html"), "i am a file");
+
+    for (const out of ["x".repeat(300) + ".html", "notadir.html/under.html", "stu\0dy.html"]) {
+      const answer = await compileSpecSource({ spec: asText(runnable) }, out);
+      expect(answer.failed).toBe(true);
+      expect(answer.text).toContain("is not a name this server can use");
+    }
+  });
+
+  // Climbing out is `..` as a whole step, not a name that merely starts with two dots.
+  it("takes a directory whose name begins with dots", async () => {
+    mkdirSync(join(workspace, "..archive"), { recursive: true });
+
+    const answer = await compileSpecSource({ spec: asText(runnable) }, "..archive/study.html");
+    expect(answer.failed).toBe(false);
+    expect(readFileSync(join(workspace, "..archive", "study.html"), "utf8")).toContain("<html");
+  });
+
   it("refuses to read a spec through one too", () => {
     const outside = temporary("tachisto-mcp-outside-");
     writeFileSync(join(outside, "study.json"), asText(runnable));
