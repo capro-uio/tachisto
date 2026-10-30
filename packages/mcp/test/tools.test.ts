@@ -222,6 +222,28 @@ describe("where a study may be written", () => {
     expect(readdirSync(workspace).filter((name) => name.endsWith(".part"))).toEqual([]);
   });
 
+  // The one place settle() and the kernel disagree: `..` in a link's target is collapsed here
+  // and walked there, so a directory link standing before it resolves two ways. What keeps that
+  // from reaching outside is that the study is written to the path settle() worked out and never
+  // to the one the caller named. This holds that invariant down, because the comment saying so
+  // is otherwise the only thing that does — see #138.
+  it("writes where the path was worked out to, not where the name would lead", async () => {
+    const outside = temporary("tachisto-mcp-outside-");
+    mkdirSync(join(outside, "sub"), { recursive: true });
+    mkdirSync(join(outside, "in"), { recursive: true });
+    mkdirSync(join(workspace, "in"), { recursive: true });
+
+    // `d` leads out of the root, and the target of `crooked.html` walks back up through it.
+    symlinkSync(join(outside, "sub"), join(workspace, "d"), "dir");
+    symlinkSync("d/../in/crooked.html", join(workspace, "crooked.html"), "file");
+
+    const answer = await compileSpecSource({ spec: asText(runnable) }, "crooked.html");
+
+    expect(answer.failed).toBe(false);
+    expect(readFileSync(join(workspace, "in", "crooked.html"), "utf8")).toContain("<html");
+    expect(existsSync(join(outside, "in", "crooked.html"))).toBe(false);
+  });
+
   it("refuses to read through one too", () => {
     const outside = temporary("tachisto-mcp-outside-");
     writeFileSync(join(outside, "study.json"), asText(runnable));
