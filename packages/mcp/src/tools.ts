@@ -1,14 +1,6 @@
 import { randomUUID } from "node:crypto";
-import {
-  lstatSync,
-  readlinkSync,
-  realpathSync,
-  renameSync,
-  rmSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
-import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { lstatSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { builderLink } from "@tachisto/compiler";
 import {
   compile,
@@ -42,47 +34,37 @@ export const INLINE = "(the spec in this call)";
  */
 export const rootDirectory = () => resolve(process.env.TACHISTO_MCP_ROOT ?? process.cwd());
 
-/** What the kernel follows before it gives up, so a ring of links ends here too. */
-const LINKS = 32;
+/**
+ * Whether a step from the root climbs out of it. The whole step, or its first part, has to be
+ * the way up: a directory is allowed to be called `..archive`, and refusing it is not safety.
+ */
+const climbs = (step: string) => step === ".." || step.startsWith(`..${sep}`);
 
 /** As far as a study reaches when it is written where there was none; umask narrows it further. */
 const REACH = 0o666;
 
 /**
- * Where a path really lands, for a path that need not exist yet: the deepest ancestor that is
- * there, resolved, with the rest hung back off it. Asking whether a path exists is not the same
- * as asking whether anything is there — a link whose target is missing does not exist and is
- * still followed when written through — so this walks by what lstat can see and follows a link
- * by hand, which is what realpathSync cannot do while the far end is absent.
+ * The path within the root, or why it is not one.
+ *
+ * Only the directory meant to hold a study is resolved, and it has to be there to be resolved —
+ * which is what makes this answerable rather than guessed at. Working out where a path that is
+ * not there yet would land means predicting the kernel's walk, and a prediction wrong by one
+ * link is a way out of the root. A directory that is there can simply be asked.
+ *
+ * A link at the end is not followed. Where it points is not where the caller asked to write, and
+ * a study landing somewhere other than the name it was given is worth refusing even when that
+ * somewhere is inside the root.
+ *
+ * What is left is the gap between asking and writing: another process with the run of the root
+ * could swap a directory for a link in between. Node offers no openat or O_NOFOLLOW to close it,
+ * and the exclusive create and the rename already hold the last step of the path.
  */
-function settle(target: string, links = LINKS): string {
-  const rest: string[] = [];
-  let at = target;
-  while (lstatSync(at, { throwIfNoEntry: false }) === undefined) {
-    const above = dirname(at);
-    // Unreachable: target is absolute, so this ends at a filesystem root, which is always there.
-    // It stays as the thing that stops the walk being unbounded, and answers honestly if reached.
-    if (above === at) return join(at, ...rest);
-    rest.unshift(basename(at));
-    at = above;
-  }
-  if (!lstatSync(at).isSymbolicLink()) return join(realpathSync(at), ...rest);
-  if (links === 0) throw new Error(`${target} is a ring of links`);
-  // A link's target is read relative to the directory holding the link, which is there to resolve.
-  // `..` in that target is collapsed here but walked by the kernel, so the two can disagree when
-  // a directory link stands before it. What keeps that from reaching outside is that the write
-  // goes to the path this returns and never to the one the caller named — do not change that.
-  const pointed = resolve(realpathSync(dirname(at)), readlinkSync(at));
-  return settle(join(pointed, ...rest), links - 1);
-}
-
-/** The path within the root, or why it is not one. */
 export function withinRoot(path: string): { path: string } | { problem: string } {
   const root = rootDirectory();
   const target = resolve(root, path);
   const step = relative(root, target);
   // isAbsolute is Windows, where a path on another drive is not relative to this one at all.
-  if (step === "" || step.startsWith("..") || isAbsolute(step)) {
+  if (step === "" || climbs(step) || isAbsolute(step)) {
     return { problem: `${path} is outside ${root}` };
   }
   let real: string;
@@ -92,17 +74,28 @@ export function withinRoot(path: string): { path: string } | { problem: string }
     // Said once, about the root, rather than as a problem with whichever spec arrived first.
     return { problem: `${root} is not a directory this server can read and write` };
   }
-  // A link inside the root can still point out of it, and writing follows it — including a link
-  // in a directory above a file that is not there yet, and one whose target is not there either.
-  let settled: string;
+  let holder: string;
   try {
-    settled = settle(target);
-  } catch (error) {
-    return { problem: `${path} cannot be resolved inside ${root}: ${(error as Error).message}` };
+    holder = realpathSync(dirname(target));
+  } catch {
+    return { problem: `there is no ${dirname(path)} in ${root} to hold ${basename(path)}` };
   }
-  const walked = relative(real, settled);
-  if (walked === "" || walked.startsWith("..") || isAbsolute(walked)) {
+  // The holder is the root itself for most studies, so standing still is not going outside.
+  const walked = relative(real, holder);
+  if (climbs(walked) || isAbsolute(walked)) {
     return { problem: `${path} leads outside ${root}` };
+  }
+  const settled = join(holder, basename(target));
+  let standing;
+  try {
+    standing = lstatSync(settled, { throwIfNoEntry: false });
+  } catch {
+    // Only a missing one is quiet; a name too long, a file where a directory was wanted or a
+    // byte that cannot be in a name are all answers about the path, not faults to throw.
+    return { problem: `${path} is not a name this server can use` };
+  }
+  if (standing?.isSymbolicLink()) {
+    return { problem: `${path} is a link, and a study is neither written nor read through one` };
   }
   return { path: settled };
 }
@@ -134,8 +127,11 @@ export function confinedFiles(): Files {
       // would reach anyway, so this never opens one up and nothing else rides along. Set as it
       // is created rather than after, or the contents would sit there open for the moment in
       // between.
-      const had = statSync(settled, { throwIfNoEntry: false });
-      const reach = (had?.mode ?? REACH) & REACH;
+      // lstat, not stat: this is the last look at a name the guard has already judged, and
+      // between the two a link could have been put there. A link's own mode is not a study's
+      // to inherit, and following it would take the reach of a file outside the root.
+      const had = lstatSync(settled, { throwIfNoEntry: false });
+      const reach = ((had?.isSymbolicLink() ? undefined : had?.mode) ?? REACH) & REACH;
       try {
         writeFileSync(temp, text, { encoding: "utf8", flag: "wx", mode: reach });
         renameSync(temp, settled);

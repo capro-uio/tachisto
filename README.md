@@ -398,7 +398,8 @@ Both tools read and write only inside the directory the server was started in, o
 `TACHISTO_MCP_ROOT` when that is set. A spec can be written by anyone, including whatever an agent
 was reading when it decided to call, so neither the spec nor the agent picks which files on the
 machine are touched — and the rule sits on the server's own view of the disk rather than on the
-one tool that first needed it.
+one tool that first needed it. A link named as the study or the spec is refused rather than
+followed; a directory reached through one is ordinary, so long as it is still inside.
 
 - `builder_link` builds a `?spec=` link for a spec already published at an https address, for when
   a person should look at what was built.

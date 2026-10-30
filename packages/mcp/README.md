@@ -23,5 +23,9 @@ Files are read and written inside the directory the server was started in, or in
 agent was reading when it decided to call this — and neither it nor the agent should be able to
 choose which files on the machine are touched.
 
+A link named as the study or as the spec is refused rather than followed, because where it points
+is not the name that was given. A directory reached through a link is ordinary, so long as it is
+still inside.
+
 The spec format is published as JSON Schema at <https://www.capro.dev/tachisto/spec-schema.json>,
 which every tool's description names. Nothing here installs a jsPsych plugin.

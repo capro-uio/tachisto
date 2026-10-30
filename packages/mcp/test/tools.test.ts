@@ -146,14 +146,22 @@ describe("where a study may be written", () => {
   });
 
   it("takes a path inside the root, and refuses the root itself", () => {
+    mkdirSync(join(workspace, "out"), { recursive: true });
     const inside = withinRoot("out/study.html");
     expect("path" in inside && inside.path).toContain(join("out", "study.html"));
     expect(withinRoot("..")).toHaveProperty("problem");
     expect(withinRoot(".")).toHaveProperty("problem");
   });
 
-  // The escape this guard exists to stop: a link standing over the study, taken for the plain
-  // name of a file about to be written, and followed out of the root when it is written.
+  // Only the directory meant to hold a study is resolved, so it has to be one that is there.
+  it("refuses a place to put a study that is not there", async () => {
+    const answer = await compileSpecSource({ spec: asText(runnable) }, "no-such-place/study.html");
+    expect(answer.failed).toBe(true);
+    expect(answer.text).toContain("there is no no-such-place");
+  });
+
+  // The escape this guard exists to stop: a directory leading out of the root, with a study
+  // written through it into somewhere the server was never given.
   it("refuses to write through a directory link that leads out of the root", async () => {
     const outside = temporary("tachisto-mcp-outside-");
     symlinkSync(outside, join(workspace, "away"), "dir");
@@ -165,28 +173,44 @@ describe("where a study may be written", () => {
     expect(existsSync(join(outside, "study.html"))).toBe(false);
   });
 
-  // Whether a path exists is not whether anything is there: a link with nothing at the far end
-  // does not exist, and is followed all the same by whatever writes through it.
-  it("refuses one whose target is not there either", async () => {
-    const outside = temporary("tachisto-mcp-outside-");
-    const absent = join(outside, "taken.html");
-    symlinkSync(absent, join(workspace, "dangling.html"), "file");
+  // A directory link that stays inside is a place in the root like any other, and asking the
+  // holder where it really is tells the two apart without guessing where a name would lead.
+  it("still writes through a directory link that stays inside the root", async () => {
+    mkdirSync(join(workspace, "studies"), { recursive: true });
+    symlinkSync(join(workspace, "studies"), join(workspace, "shortcut"), "dir");
 
-    expect(withinRoot("dangling.html")).toHaveProperty("problem");
-    const answer = await compileSpecSource({ spec: asText(runnable) }, "dangling.html");
-    expect(answer.failed).toBe(true);
-    expect(answer.text).toContain("leads outside");
-    expect(existsSync(absent)).toBe(false);
+    const answer = await compileSpecSource({ spec: asText(runnable) }, "shortcut/s.html");
+    expect(answer.failed).toBe(false);
+    expect(readFileSync(join(workspace, "studies", "s.html"), "utf8")).toContain("<html");
   });
 
-  // The refusal is about where a link goes, not that it is one; inside the root is still inside.
-  it("still writes through a link that stays inside the root", async () => {
-    mkdirSync(join(workspace, "studies"), { recursive: true });
-    symlinkSync(join(workspace, "studies", "later.html"), join(workspace, "later.html"), "file");
+  // A link at the end is refused wherever it leads. Following one writes somewhere other than
+  // the name that was given, and telling inside from outside would mean predicting the kernel's
+  // walk — which is the prediction every escape so far came from.
+  it("refuses a link standing where the study would go, out of the root or in it", () => {
+    const outside = temporary("tachisto-mcp-outside-");
+    symlinkSync(join(outside, "taken.html"), join(workspace, "dangling.html"), "file");
+    symlinkSync(join(workspace, "studies", "later.html"), join(workspace, "inside.html"), "file");
+    symlinkSync(workspace, join(workspace, "self"), "dir");
 
-    const answer = await compileSpecSource({ spec: asText(runnable) }, "later.html");
-    expect(answer.failed).toBe(false);
-    expect(readFileSync(join(workspace, "studies", "later.html"), "utf8")).toContain("<html");
+    for (const name of ["dangling.html", "inside.html", "self"]) {
+      const refusal = withinRoot(name);
+      expect(refusal).toHaveProperty("problem");
+      expect("problem" in refusal && refusal.problem).toContain("is a link");
+    }
+    expect(existsSync(join(outside, "taken.html"))).toBe(false);
+    expect(existsSync(join(workspace, "studies", "later.html"))).toBe(false);
+  });
+
+  // A ring of links needed a budget to get out of while they were being followed. Nothing
+  // follows one now, so there is nothing to get out of.
+  it("refuses a ring of links without following it", () => {
+    symlinkSync(join(workspace, "ring-b"), join(workspace, "ring-a"), "file");
+    symlinkSync(join(workspace, "ring-a"), join(workspace, "ring-b"), "file");
+
+    const ring = withinRoot("ring-a");
+    expect(ring).toHaveProperty("problem");
+    expect("problem" in ring && ring.problem).toContain("is a link");
   });
 
   // No path tells a hard link apart from the file it shares, so the name is replaced rather
@@ -203,48 +227,53 @@ describe("where a study may be written", () => {
     expect(readFileSync(join(workspace, "linked.html"), "utf8")).toContain("<html");
   });
 
-  it("refuses a link that circles back to the root, and a ring of them", () => {
-    symlinkSync(workspace, join(workspace, "self"), "dir");
-    expect(withinRoot("self")).toHaveProperty("problem");
-
-    symlinkSync(join(workspace, "ring-b"), join(workspace, "ring-a"), "file");
-    symlinkSync(join(workspace, "ring-a"), join(workspace, "ring-b"), "file");
-    const ring = withinRoot("ring-a");
-    expect(ring).toHaveProperty("problem");
-    // Named, so that running out of patience is told apart from running out of stack.
-    expect("problem" in ring && ring.problem).toContain("is a ring of links");
-  });
-
-  // Half a study is worse than none: whatever the move leaves behind has to be cleared up.
   it("leaves nothing behind when the study cannot be written", async () => {
-    const answer = await compileSpecSource({ spec: asText(runnable) }, "no-such-place/study.html");
+    mkdirSync(join(workspace, "occupied.html"), { recursive: true });
+    const answer = await compileSpecSource({ spec: asText(runnable) }, "occupied.html");
     expect(answer.failed).toBe(true);
     expect(readdirSync(workspace).filter((name) => name.endsWith(".part"))).toEqual([]);
   });
 
-  // The one place settle() and the kernel disagree: `..` in a link's target is collapsed here
-  // and walked there, so a directory link standing before it resolves two ways. What keeps that
-  // from reaching outside is that the study is written to the path settle() worked out and never
-  // to the one the caller named. This holds that invariant down, because the comment saying so
-  // is otherwise the only thing that does — see #138.
-  it("writes where the path was worked out to, not where the name would lead", async () => {
+  // The divergence that used to be held down by a comment: `..` in a link's target collapsed
+  // one way here and walked another by the kernel. Refusing the link removes the question
+  // rather than answering it carefully. See #138.
+  it("refuses a link whose target walks out of the root and back in", async () => {
     const outside = temporary("tachisto-mcp-outside-");
     mkdirSync(join(outside, "sub"), { recursive: true });
     mkdirSync(join(outside, "in"), { recursive: true });
     mkdirSync(join(workspace, "in"), { recursive: true });
-
-    // `d` leads out of the root, and the target of `crooked.html` walks back up through it.
     symlinkSync(join(outside, "sub"), join(workspace, "d"), "dir");
     symlinkSync("d/../in/crooked.html", join(workspace, "crooked.html"), "file");
 
     const answer = await compileSpecSource({ spec: asText(runnable) }, "crooked.html");
-
-    expect(answer.failed).toBe(false);
-    expect(readFileSync(join(workspace, "in", "crooked.html"), "utf8")).toContain("<html");
+    expect(answer.failed).toBe(true);
+    expect(answer.text).toContain("is a link");
+    expect(existsSync(join(workspace, "in", "crooked.html"))).toBe(false);
     expect(existsSync(join(outside, "in", "crooked.html"))).toBe(false);
   });
 
-  it("refuses to read through one too", () => {
+  // A name that cannot be used is still an answer about the name. Only a missing one is quiet,
+  // and every other errno used to come back as a thrown filesystem error instead of a refusal.
+  it("answers about a name it cannot use rather than failing to answer", async () => {
+    writeFileSync(join(workspace, "notadir.html"), "i am a file");
+
+    for (const out of ["x".repeat(300) + ".html", "notadir.html/under.html", "stu\0dy.html"]) {
+      const answer = await compileSpecSource({ spec: asText(runnable) }, out);
+      expect(answer.failed).toBe(true);
+      expect(answer.text).toContain("is not a name this server can use");
+    }
+  });
+
+  // Climbing out is `..` as a whole step, not a name that merely starts with two dots.
+  it("takes a directory whose name begins with dots", async () => {
+    mkdirSync(join(workspace, "..archive"), { recursive: true });
+
+    const answer = await compileSpecSource({ spec: asText(runnable) }, "..archive/study.html");
+    expect(answer.failed).toBe(false);
+    expect(readFileSync(join(workspace, "..archive", "study.html"), "utf8")).toContain("<html");
+  });
+
+  it("refuses to read a spec through one too", () => {
     const outside = temporary("tachisto-mcp-outside-");
     writeFileSync(join(outside, "study.json"), asText(runnable));
     symlinkSync(join(outside, "study.json"), join(workspace, "linked.json"), "file");
@@ -252,7 +281,7 @@ describe("where a study may be written", () => {
     const answer = validateSpecSource({ path: "linked.json" });
     expect(answer.failed).toBe(true);
     expect(answer.text).toContain("There is no spec to check at linked.json");
-    expect(spoken(answer.payload.problems)).toContain("leads outside");
+    expect(spoken(answer.payload.problems)).toContain("is a link");
   });
 
   it("falls back to a name of its own when none is given", async () => {
