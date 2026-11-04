@@ -13,6 +13,12 @@ updates:
       # run (24), not ahead of it: newer types would let code use APIs that do not exist there.
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+      # typescript-eslint caps TypeScript at <6.1.0, and 8.72.1, the latest, still does. A bump to
+      # 7 cannot be installed at all: `npm ci` fails to resolve the peer dependency before any job
+      # runs, so the pull request cannot go green and cannot say why without reading the log. 6.0.x
+      # is inside the cap and is still offered. Drop this once typescript-eslint supports 7.
+      - dependency-name: "typescript"
+        versions: [">=7"]
     groups:
       # A plugin update changes the extracted schemas, so they are taken together and the
       # schemas-up-to-date check says when packages/schemas/plugin-schemas.json needs regenerating.
