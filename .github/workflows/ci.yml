@@ -68,6 +68,21 @@ jobs:
       - name: Fail if codemeta.json, CITATION.cff or .zenodo.json is behind the version or the jsPsych it builds for
         run: git diff --exit-code codemeta.json CITATION.cff .zenodo.json
 
+  versions-agree:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Fail if the workspaces disagree about the version
+        run: npm run versions
+      # The release workflow holds a tag to this too; failing here moves it onto the pull request.
+      - name: Fail if NEWS.md has no notes for the version this checkout carries
+        run: npm run notes
+
   workflows:
     runs-on: ubuntu-latest
     steps:

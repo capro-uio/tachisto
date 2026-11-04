@@ -49,6 +49,9 @@ maintainable by a small team.
 
 The builder lives in `apps/builder`, and the website that introduces it in `apps/site`.
 
+Cutting a release is a tag; what that tag has to satisfy, and how to publish a package for the
+first time, is in [RELEASING.md](RELEASING.md).
+
 ## Use
 
 ```sh
@@ -481,9 +484,10 @@ frame has nothing of yours to send.
 - **Versioned provenance.** Exports say what made them: the Psych-DS `isBasedOn`, the header
   comment in `experiment.js`, the `generator` meta tag and the project readme all name Tachisto and
   jsPsych with their versions. Tachisto's comes from `packages/compiler/package.json`, so a release
-  is a version bump and nothing else — `npm version <v> --workspaces` turns it on everywhere, and
+  is a version bump and nothing else — `npm run bump -- --to <v>` turns it on everywhere, moving
+  both the versions and the ranges the workspaces state for each other, and `npm run codemeta`
   regenerates `codemeta.json` with the new version, its release URL and the jsPsych it builds for
-  (`npm run codemeta` does the same by hand; CI fails if it is out of date). The same run writes
+  (CI fails if it is out of date, and `npm run versions` says what disagrees). The same run writes
   `CITATION.cff` and `.zenodo.json` from `codemeta.json`, so the citation and the Zenodo archive
   say what it says. The description, licence, keywords and links come from the root
   `package.json`, so they are said once; only what npm has no field for, such as the authors and

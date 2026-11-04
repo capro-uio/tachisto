@@ -1,0 +1,119 @@
+name: Release
+
+# A tag is the whole trigger: whatever v0.0.3 points at is the release, so the checks below are the
+# last word on whether that commit is one. They repeat nothing CI already proved green on main.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+# One release at a time, so two tags pushed together reach npm in the order they were made.
+concurrency:
+  group: release
+
+jobs:
+  verify:
+    name: Check the tag against the repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # The whole history, so the tagged commit can be checked against main below.
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Fail unless the tagged commit is on main
+        # RELEASING.md says a release is a merged commit; this is what makes that a checked
+        # property rather than a convention, so a tag cannot publish unreviewed work.
+        run: |
+          git fetch origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "$GITHUB_SHA is not on main; merge the release first, then tag the merge commit"
+            exit 1
+          fi
+      - name: Fail unless every workspace carries the version the tag names
+        env:
+          TAG: ${{ github.ref_name }}
+        run: npm run versions -- --tag "$TAG"
+      - name: Fail unless the citation metadata was regenerated for this version
+        # Zenodo archives whatever .zenodo.json says at the moment the release is published, and
+        # that record is permanent. A tag that would deposit stale metadata stops here.
+        run: npm run codemeta
+      - run: git diff --exit-code codemeta.json CITATION.cff .zenodo.json
+      - name: Fail unless NEWS.md has notes for this version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: npm run notes -- --tag "$TAG"
+
+  publish:
+    name: Publish to npm and open the release
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      # Trusted publishing: npm verifies this run through its OIDC token, so no npm credential is
+      # stored here. Each package is configured for it at npmjs.com, which npm allows only once the
+      # package exists; see RELEASING.md for the first publish of a new one.
+      id-token: write
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          registry-url: https://registry.npmjs.org
+      - run: npm ci
+      # Trusted publishing needs npm 11.5.1 or newer; Node 24 may still ship an older one. Pinned
+      # exactly: this is the one install the lockfile does not constrain, and it does the publish.
+      - run: npm install --global npm@11.6.0
+      - run: npm run build:packages
+      - name: Publish the packages, each depending only on ones already out
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="${TAG#v}"
+          # A prerelease must not become what `npm install @tachisto/cli` gives people.
+          case "$version" in
+            *-*) dist_tag=next ;;
+            *) dist_tag=latest ;;
+          esac
+          for package in schemas compiler cli mcp; do
+            name="@tachisto/$package"
+            # A tag is retried when a later package fails, or when a new one has yet to be
+            # configured for trusted publishing; the ones already out are left alone.
+            if npm view "$name@$version" version >/dev/null 2>&1; then
+              echo "::warning::$name@$version is already published, so this run leaves it alone."
+              echo "If $TAG was moved to another commit, that tarball came from the old one;"
+              echo "release a new version rather than re-tagging this one."
+              continue
+            fi
+            npm publish --workspace "$name" --tag "$dist_tag"
+          done
+      - name: Open the GitHub release, which Zenodo archives
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "the release for $TAG is already open"
+            exit 0
+          fi
+          # --silent, or npm's own "> notes" banner would be the first line of the release.
+          npm run --silent notes -- --tag "$TAG" > "$RUNNER_TEMP/notes.md"
+          version="${TAG#v}"
+          prerelease=()
+          case "$version" in
+            *-*) prerelease=(--prerelease) ;;
+          esac
+          gh release create "$TAG" \
+            --title "Tachisto $version" \
+            --notes-file "$RUNNER_TEMP/notes.md" \
+            --verify-tag \
+            "${prerelease[@]}"

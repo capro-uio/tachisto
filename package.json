@@ -19,6 +19,9 @@
   },
   "license": "MIT",
   "type": "module",
+  "engines": {
+    "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
+  },
   "workspaces": [
     "packages/*",
     "apps/*"
@@ -31,6 +34,9 @@
     "schemas": "npm run extract --workspace @tachisto/schemas",
     "spec-schema": "npm run spec-schema --workspace @tachisto/compiler",
     "codemeta": "npm run codemeta --workspace @tachisto/compiler",
+    "versions": "node packages/compiler/scripts/cli.ts versions",
+    "notes": "node packages/compiler/scripts/cli.ts notes",
+    "bump": "node packages/compiler/scripts/cli.ts bump",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prelint": "npm run build:packages",
