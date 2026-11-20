@@ -18,7 +18,7 @@
   } from "./lib/experiment.svelte.ts";
   import { downloads, setSelfContained } from "./lib/downloads.svelte.ts";
   import { figureChoices } from "./lib/figure-choices.svelte.ts";
-  import { backgroundColor, textColor } from "@tachisto/compiler";
+  import { backgroundColor, textColor } from "tachisto-compiler";
   import NodeForm from "./lib/NodeForm.svelte";
   import SequenceStrip from "./lib/SequenceStrip.svelte";
   import Preview from "./lib/Preview.svelte";

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { untrack } from "svelte";
-  import { dataPipeSetup, type SetupField } from "@tachisto/compiler";
+  import { dataPipeSetup, type SetupField } from "tachisto-compiler";
   import { project } from "./project.svelte.ts";
 
   const setup = $derived(dataPipeSetup(project.spec));

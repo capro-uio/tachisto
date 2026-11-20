@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Spec } from "@tachisto/compiler";
+import type { Spec } from "tachisto-compiler";
 import stroop from "../../../examples/stroop.json";
 
 const spec = stroop as Spec;

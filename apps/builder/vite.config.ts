@@ -8,7 +8,7 @@ export default defineConfig({
   plugins: [svelte()],
   base: "./",
   // The brand's logos are served as they are, so only the one the theme shows is fetched.
-  publicDir: dirname(fileURLToPath(import.meta.resolve("@tachisto/brand/logos/favicon.svg"))),
+  publicDir: dirname(fileURLToPath(import.meta.resolve("tachisto-brand/logos/favicon.svg"))),
   server: { port: 5180 },
   test: {
     fileParallelism: false,

@@ -90,7 +90,7 @@ describe("the link preview", () => {
     const image = meta("og:image");
     expect(image?.startsWith(home)).toBe(true);
     const file = fileURLToPath(
-      import.meta.resolve(`@tachisto/brand/logos/${image!.slice(home.length)}`),
+      import.meta.resolve(`tachisto-brand/logos/${image!.slice(home.length)}`),
     );
     const header = readFileSync(file).subarray(0, 24);
     expect(header.readUInt32BE(16)).toBe(Number(meta("og:image:width")));

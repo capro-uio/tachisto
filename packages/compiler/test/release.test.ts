@@ -92,7 +92,7 @@ describe("workspaceVersions", () => {
 
   beforeEach(() => {
     root = repository(["packages/*"], {
-      "packages/schemas": { name: "@tachisto/schemas", version: "0.0.3" },
+      "packages/schemas": { name: "tachisto-schemas", version: "0.0.3" },
     });
   });
 
@@ -101,7 +101,7 @@ describe("workspaceVersions", () => {
   it("reads each workspace's name, version and whether it is published", () => {
     expect(workspaceVersions(root)).toEqual([
       {
-        name: "@tachisto/schemas",
+        name: "tachisto-schemas",
         directory: "packages/schemas",
         version: "0.0.3",
         private: false,
@@ -114,11 +114,11 @@ describe("workspaceVersions", () => {
     mkdirSync(join(root, "packages/brand"));
     writeFileSync(
       join(root, "packages/brand/package.json"),
-      JSON.stringify({ name: "@tachisto/brand", private: true, version: "0.0.3" }),
+      JSON.stringify({ name: "tachisto-brand", private: true, version: "0.0.3" }),
     );
     expect(workspaceVersions(root).map((found) => [found.name, found.private])).toEqual([
-      ["@tachisto/brand", true],
-      ["@tachisto/schemas", false],
+      ["tachisto-brand", true],
+      ["tachisto-schemas", false],
     ]);
   });
 
@@ -134,7 +134,7 @@ describe("workspaceVersions", () => {
     );
     expect(workspaceVersions(root).map((found) => [found.name, found.version])).toEqual([
       ["packages/gone", undefined],
-      ["@tachisto/schemas", "0.0.3"],
+      ["tachisto-schemas", "0.0.3"],
     ]);
   });
 
@@ -150,34 +150,34 @@ describe("workspaceVersions, on the ranges workspaces state for each other", () 
 
   beforeEach(() => {
     root = repository(["packages/*"], {
-      "packages/schemas": { name: "@tachisto/schemas", version: "0.0.2" },
-      "packages/compiler": { name: "@tachisto/compiler", version: "0.0.2" },
+      "packages/schemas": { name: "tachisto-schemas", version: "0.0.2" },
+      "packages/compiler": { name: "tachisto-compiler", version: "0.0.2" },
       "packages/mcp": {
-        name: "@tachisto/mcp",
+        name: "tachisto-mcp",
         version: "0.0.2",
-        dependencies: { "@tachisto/schemas": "^0.0.2", zod: "^4.6.7" },
-        devDependencies: { "@tachisto/compiler": "^0.0.2" },
-        peerDependencies: { "@tachisto/schemas": "^0.0.2" },
-        optionalDependencies: { "@tachisto/compiler": "^0.0.2" },
+        dependencies: { "tachisto-schemas": "^0.0.2", zod: "^4.6.7" },
+        devDependencies: { "tachisto-compiler": "^0.0.2" },
+        peerDependencies: { "tachisto-schemas": "^0.0.2" },
+        optionalDependencies: { "tachisto-compiler": "^0.0.2" },
       },
     });
   });
 
   afterEach(() => rmSync(root, { recursive: true, force: true }));
 
-  const mcp = () => workspaceVersions(root).find((found) => found.name === "@tachisto/mcp")!;
+  const mcp = () => workspaceVersions(root).find((found) => found.name === "tachisto-mcp")!;
 
   it("records a sibling's range from every dependency field, and ignores outside packages", () => {
     expect(mcp().internal).toEqual([
-      { field: "dependencies", name: "@tachisto/schemas", range: "^0.0.2" },
-      { field: "devDependencies", name: "@tachisto/compiler", range: "^0.0.2" },
-      { field: "peerDependencies", name: "@tachisto/schemas", range: "^0.0.2" },
-      { field: "optionalDependencies", name: "@tachisto/compiler", range: "^0.0.2" },
+      { field: "dependencies", name: "tachisto-schemas", range: "^0.0.2" },
+      { field: "devDependencies", name: "tachisto-compiler", range: "^0.0.2" },
+      { field: "peerDependencies", name: "tachisto-schemas", range: "^0.0.2" },
+      { field: "optionalDependencies", name: "tachisto-compiler", range: "^0.0.2" },
     ]);
   });
 
   it("keeps the same sibling named in two fields, so neither hides the other", () => {
-    const schemas = mcp().internal.filter((range) => range.name === "@tachisto/schemas");
+    const schemas = mcp().internal.filter((range) => range.name === "tachisto-schemas");
     expect(schemas.map((range) => range.field)).toEqual(["dependencies", "peerDependencies"]);
   });
 
@@ -187,13 +187,13 @@ describe("workspaceVersions, on the ranges workspaces state for each other", () 
 
   it("names every range left at the version before, field by field", () => {
     expect(versionDisagreements(workspaceVersions(root), "0.0.3")).toEqual([
-      "packages/compiler/package.json: @tachisto/compiler is 0.0.2, not 0.0.3",
-      "packages/mcp/package.json: @tachisto/mcp is 0.0.2, not 0.0.3",
-      "packages/schemas/package.json: @tachisto/schemas is 0.0.2, not 0.0.3",
-      "packages/mcp/package.json: @tachisto/mcp names @tachisto/schemas ^0.0.2 in dependencies, not ^0.0.3",
-      "packages/mcp/package.json: @tachisto/mcp names @tachisto/compiler ^0.0.2 in devDependencies, not ^0.0.3",
-      "packages/mcp/package.json: @tachisto/mcp names @tachisto/schemas ^0.0.2 in peerDependencies, not ^0.0.3",
-      "packages/mcp/package.json: @tachisto/mcp names @tachisto/compiler ^0.0.2 in optionalDependencies, not ^0.0.3",
+      "packages/compiler/package.json: tachisto-compiler is 0.0.2, not 0.0.3",
+      "packages/mcp/package.json: tachisto-mcp is 0.0.2, not 0.0.3",
+      "packages/schemas/package.json: tachisto-schemas is 0.0.2, not 0.0.3",
+      "packages/mcp/package.json: tachisto-mcp names tachisto-schemas ^0.0.2 in dependencies, not ^0.0.3",
+      "packages/mcp/package.json: tachisto-mcp names tachisto-compiler ^0.0.2 in devDependencies, not ^0.0.3",
+      "packages/mcp/package.json: tachisto-mcp names tachisto-schemas ^0.0.2 in peerDependencies, not ^0.0.3",
+      "packages/mcp/package.json: tachisto-mcp names tachisto-compiler ^0.0.2 in optionalDependencies, not ^0.0.3",
     ]);
   });
 
@@ -201,11 +201,11 @@ describe("workspaceVersions, on the ranges workspaces state for each other", () 
     const manifest = JSON.parse(
       readFileSync(join(root, "packages/mcp/package.json"), "utf8"),
     ) as Record<string, Record<string, string>>;
-    manifest.peerDependencies = { "@tachisto/schemas": "*" };
-    manifest.dependencies = { "@tachisto/schemas": "^0.0.2" };
+    manifest.peerDependencies = { "tachisto-schemas": "*" };
+    manifest.dependencies = { "tachisto-schemas": "^0.0.2" };
     writeFileSync(join(root, "packages/mcp/package.json"), JSON.stringify(manifest));
     expect(versionDisagreements(workspaceVersions(root), "0.0.2")).toEqual([
-      "packages/mcp/package.json: @tachisto/mcp names @tachisto/schemas * in peerDependencies, not ^0.0.2",
+      "packages/mcp/package.json: tachisto-mcp names tachisto-schemas * in peerDependencies, not ^0.0.2",
     ]);
   });
 });
@@ -214,8 +214,8 @@ describe("versionDisagreements", () => {
   it("is silent when every workspace carries the same version", () => {
     expect(
       versionDisagreements([
-        workspace("@tachisto/schemas", "packages/schemas", "0.0.3"),
-        workspace("@tachisto/compiler", "packages/compiler", "0.0.3"),
+        workspace("tachisto-schemas", "packages/schemas", "0.0.3"),
+        workspace("tachisto-compiler", "packages/compiler", "0.0.3"),
       ]),
     ).toEqual([]);
   });
@@ -223,41 +223,41 @@ describe("versionDisagreements", () => {
   it("names the workspace left behind by a partial bump, and the file to edit", () => {
     expect(
       versionDisagreements([
-        workspace("@tachisto/schemas", "packages/schemas", "0.0.3"),
-        workspace("@tachisto/compiler", "packages/compiler", "0.0.3"),
-        workspace("@tachisto/mcp", "packages/mcp", "0.0.2"),
+        workspace("tachisto-schemas", "packages/schemas", "0.0.3"),
+        workspace("tachisto-compiler", "packages/compiler", "0.0.3"),
+        workspace("tachisto-mcp", "packages/mcp", "0.0.2"),
       ]),
-    ).toEqual(["packages/mcp/package.json: @tachisto/mcp is 0.0.2, not 0.0.3"]);
+    ).toEqual(["packages/mcp/package.json: tachisto-mcp is 0.0.2, not 0.0.3"]);
   });
 
   it("holds every workspace to the version a release says, not to each other", () => {
     expect(
       versionDisagreements(
         [
-          workspace("@tachisto/schemas", "packages/schemas", "0.0.2"),
-          workspace("@tachisto/compiler", "packages/compiler", "0.0.2"),
+          workspace("tachisto-schemas", "packages/schemas", "0.0.2"),
+          workspace("tachisto-compiler", "packages/compiler", "0.0.2"),
         ],
         "0.0.3",
       ),
     ).toEqual([
-      "packages/schemas/package.json: @tachisto/schemas is 0.0.2, not 0.0.3",
-      "packages/compiler/package.json: @tachisto/compiler is 0.0.2, not 0.0.3",
+      "packages/schemas/package.json: tachisto-schemas is 0.0.2, not 0.0.3",
+      "packages/compiler/package.json: tachisto-compiler is 0.0.2, not 0.0.3",
     ]);
   });
 
   it("is silent when every workspace already matches the version a release says", () => {
     expect(
-      versionDisagreements([workspace("@tachisto/schemas", "packages/schemas", "0.0.3")], "0.0.3"),
+      versionDisagreements([workspace("tachisto-schemas", "packages/schemas", "0.0.3")], "0.0.3"),
     ).toEqual([]);
   });
 
   it("reports a workspace whose manifest states no version at all", () => {
     expect(
       versionDisagreements([
-        workspace("@tachisto/schemas", "packages/schemas", "0.0.3"),
-        workspace("@tachisto/brand", "packages/brand"),
+        workspace("tachisto-schemas", "packages/schemas", "0.0.3"),
+        workspace("tachisto-brand", "packages/brand"),
       ]),
-    ).toEqual(["packages/brand/package.json: @tachisto/brand carries no version"]);
+    ).toEqual(["packages/brand/package.json: tachisto-brand carries no version"]);
   });
 
   it("blames only the workspaces that lack a version, not the ones that have it", () => {
@@ -265,27 +265,27 @@ describe("versionDisagreements", () => {
     // make the majority look wrong just by outnumbering them.
     expect(
       versionDisagreements([
-        workspace("@tachisto/schemas", "packages/schemas", "0.0.3"),
-        workspace("@tachisto/site", "apps/site", undefined, [], true),
-        workspace("@tachisto/builder", "apps/builder", undefined, [], true),
-        workspace("@tachisto/brand", "packages/brand", undefined, [], true),
+        workspace("tachisto-schemas", "packages/schemas", "0.0.3"),
+        workspace("tachisto-site", "apps/site", undefined, [], true),
+        workspace("tachisto-builder", "apps/builder", undefined, [], true),
+        workspace("tachisto-brand", "packages/brand", undefined, [], true),
       ]),
     ).toEqual([
-      "apps/site/package.json: @tachisto/site carries no version",
-      "apps/builder/package.json: @tachisto/builder carries no version",
-      "packages/brand/package.json: @tachisto/brand carries no version",
+      "apps/site/package.json: tachisto-site carries no version",
+      "apps/builder/package.json: tachisto-builder carries no version",
+      "packages/brand/package.json: tachisto-brand carries no version",
     ]);
   });
 
   it("reports every workspace when none states a version and no release says what it is", () => {
     expect(
       versionDisagreements([
-        workspace("@tachisto/schemas", "packages/schemas"),
-        workspace("@tachisto/brand", "packages/brand"),
+        workspace("tachisto-schemas", "packages/schemas"),
+        workspace("tachisto-brand", "packages/brand"),
       ]),
     ).toEqual([
-      "packages/schemas/package.json: @tachisto/schemas carries no version",
-      "packages/brand/package.json: @tachisto/brand carries no version",
+      "packages/schemas/package.json: tachisto-schemas carries no version",
+      "packages/brand/package.json: tachisto-brand carries no version",
     ]);
   });
 
@@ -296,14 +296,8 @@ describe("versionDisagreements", () => {
   it("leaves a star alone in a workspace nobody installs", () => {
     expect(
       versionDisagreements([
-        workspace("@tachisto/brand", "packages/brand", "0.0.3", [], true),
-        workspace(
-          "@tachisto/site",
-          "apps/site",
-          "0.0.3",
-          [dependency("@tachisto/brand", "*")],
-          true,
-        ),
+        workspace("tachisto-brand", "packages/brand", "0.0.3", [], true),
+        workspace("tachisto-site", "apps/site", "0.0.3", [dependency("tachisto-brand", "*")], true),
       ]),
     ).toEqual([]);
   });
@@ -311,37 +305,33 @@ describe("versionDisagreements", () => {
   it("refuses a star in a published workspace, which would ship an unpinned dependency", () => {
     expect(
       versionDisagreements([
-        workspace("@tachisto/schemas", "packages/schemas", "0.0.3"),
-        workspace("@tachisto/cli", "packages/cli", "0.0.3", [dependency("@tachisto/schemas", "*")]),
+        workspace("tachisto-schemas", "packages/schemas", "0.0.3"),
+        workspace("tachisto", "packages/cli", "0.0.3", [dependency("tachisto-schemas", "*")]),
       ]),
     ).toEqual([
-      "packages/cli/package.json: @tachisto/cli names @tachisto/schemas * in dependencies, not ^0.0.3",
+      "packages/cli/package.json: tachisto names tachisto-schemas * in dependencies, not ^0.0.3",
     ]);
   });
 
   it("holds a range to the version even when every version itself agrees", () => {
     expect(
       versionDisagreements([
-        workspace("@tachisto/schemas", "packages/schemas", "0.0.3"),
-        workspace("@tachisto/cli", "packages/cli", "0.0.3", [
-          dependency("@tachisto/schemas", "^0.0.2"),
-        ]),
+        workspace("tachisto-schemas", "packages/schemas", "0.0.3"),
+        workspace("tachisto", "packages/cli", "0.0.3", [dependency("tachisto-schemas", "^0.0.2")]),
       ]),
     ).toEqual([
-      "packages/cli/package.json: @tachisto/cli names @tachisto/schemas ^0.0.2 in dependencies, not ^0.0.3",
+      "packages/cli/package.json: tachisto names tachisto-schemas ^0.0.2 in dependencies, not ^0.0.3",
     ]);
   });
 
   it("asks for the one canonical form, so an exact pin is named too", () => {
     expect(
       versionDisagreements([
-        workspace("@tachisto/schemas", "packages/schemas", "0.0.3"),
-        workspace("@tachisto/cli", "packages/cli", "0.0.3", [
-          dependency("@tachisto/schemas", "0.0.3"),
-        ]),
+        workspace("tachisto-schemas", "packages/schemas", "0.0.3"),
+        workspace("tachisto", "packages/cli", "0.0.3", [dependency("tachisto-schemas", "0.0.3")]),
       ]),
     ).toEqual([
-      "packages/cli/package.json: @tachisto/cli names @tachisto/schemas 0.0.3 in dependencies, not ^0.0.3",
+      "packages/cli/package.json: tachisto names tachisto-schemas 0.0.3 in dependencies, not ^0.0.3",
     ]);
   });
 });
@@ -520,19 +510,19 @@ describe("bumpedManifests", () => {
 
   beforeEach(() => {
     root = repository(["packages/*", "apps/*"], {
-      "packages/schemas": { name: "@tachisto/schemas", version: "0.0.2" },
-      "packages/brand": { name: "@tachisto/brand", private: true, version: "0.0.2" },
+      "packages/schemas": { name: "tachisto-schemas", version: "0.0.2" },
+      "packages/brand": { name: "tachisto-brand", private: true, version: "0.0.2" },
       "packages/cli": {
-        name: "@tachisto/cli",
+        name: "tachisto",
         version: "0.0.2",
-        dependencies: { "@tachisto/schemas": "^0.0.2", commander: "^12.0.0" },
-        peerDependencies: { "@tachisto/schemas": "^0.0.2" },
+        dependencies: { "tachisto-schemas": "^0.0.2", commander: "^12.0.0" },
+        peerDependencies: { "tachisto-schemas": "^0.0.2" },
       },
       "apps/site": {
-        name: "@tachisto/site",
+        name: "tachisto-site",
         private: true,
         version: "0.0.2",
-        dependencies: { "@tachisto/brand": "*" },
+        dependencies: { "tachisto-brand": "*" },
       },
     });
   });
@@ -559,20 +549,20 @@ describe("bumpedManifests", () => {
 
   it("moves a sibling's range with the version, and leaves outside packages alone", () => {
     expect(bumped("0.0.3").get("packages/cli/package.json")?.dependencies).toEqual({
-      "@tachisto/schemas": "^0.0.3",
+      "tachisto-schemas": "^0.0.3",
       commander: "^12.0.0",
     });
   });
 
   it("moves a sibling's range in every field it is stated in", () => {
     expect(bumped("0.0.3").get("packages/cli/package.json")?.peerDependencies).toEqual({
-      "@tachisto/schemas": "^0.0.3",
+      "tachisto-schemas": "^0.0.3",
     });
   });
 
   it("leaves a star where a workspace nobody installs states it", () => {
     expect(bumped("0.0.3").get("apps/site/package.json")?.dependencies).toEqual({
-      "@tachisto/brand": "*",
+      "tachisto-brand": "*",
     });
   });
 
@@ -589,21 +579,18 @@ describe("publishedWorkspaces", () => {
   it("is the workspaces that are not private", () => {
     expect(
       publishedWorkspaces([
-        workspace("@tachisto/schemas", "packages/schemas", "0.0.3"),
-        workspace("@tachisto/brand", "packages/brand", "0.0.3", [], true),
+        workspace("tachisto-schemas", "packages/schemas", "0.0.3"),
+        workspace("tachisto-brand", "packages/brand", "0.0.3", [], true),
       ]),
-    ).toEqual(["@tachisto/schemas"]);
+    ).toEqual(["tachisto-schemas"]);
   });
 
   it("is what the release workflow publishes, so the two cannot drift apart", () => {
     const repositoryRoot = fileURLToPath(new URL("../../../", import.meta.url));
     const workflow = readFileSync(join(repositoryRoot, ".github/workflows/release.yml"), "utf8");
-    const loop = /for package in ([^;\n]+); do/.exec(workflow);
+    const loop = /for name in ([^;\n]+); do/.exec(workflow);
     expect(loop, "the publish loop in release.yml").not.toBeNull();
-    const published = loop![1]
-      .trim()
-      .split(/\s+/)
-      .map((name) => `@tachisto/${name}`);
+    const published = loop![1].trim().split(/\s+/);
     expect(published.sort()).toEqual(publishedWorkspaces(workspaceVersions(repositoryRoot)).sort());
   });
 });

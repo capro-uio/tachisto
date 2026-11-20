@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { cdnUrl, filesOfPackages } from "@tachisto/compiler";
+import { cdnUrl, filesOfPackages } from "tachisto-compiler";
 import { fetchPackageSources } from "../src/lib/package-sources.ts";
 import { schemas } from "../src/lib/schemas.ts";
 import { installedCopy } from "./installed.ts";

@@ -5,7 +5,7 @@
     conditionSteps,
     DATAPIPE_URL,
     usesRecordings,
-  } from "@tachisto/compiler";
+  } from "tachisto-compiler";
   import DataPipeSetup from "./DataPipeSetup.svelte";
   import { project } from "./project.svelte.ts";
 

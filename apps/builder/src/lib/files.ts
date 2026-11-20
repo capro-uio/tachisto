@@ -1,5 +1,5 @@
-import { assetsOfType } from "@tachisto/compiler";
-import type { Asset, Spec } from "@tachisto/compiler";
+import { assetsOfType } from "tachisto-compiler";
+import type { Asset, Spec } from "tachisto-compiler";
 
 export function download(filename: string, contents: BlobPart, type: string) {
   const url = URL.createObjectURL(new Blob([contents], { type }));

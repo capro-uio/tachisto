@@ -4,9 +4,9 @@ import { fileURLToPath } from "node:url";
 import Ajv from "ajv";
 import type { ValidateFunction } from "ajv";
 import { describe, expect, it } from "vitest";
-import bundle from "@tachisto/schemas/plugin-schemas.json" with { type: "json" };
+import bundle from "tachisto-schemas/plugin-schemas.json" with { type: "json" };
 import { SPEC_SCHEMA_ID, specSchema } from "../src/spec-schema.ts";
-import type { SchemaBundle } from "@tachisto/schemas";
+import type { SchemaBundle } from "tachisto-schemas";
 import type { Spec } from "../src/types.ts";
 
 const { plugins } = bundle as unknown as SchemaBundle;

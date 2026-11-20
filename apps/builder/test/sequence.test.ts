@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import stroop from "../../../examples/stroop.json";
-import type { Spec, SpecNode, TrialNode } from "@tachisto/compiler";
+import type { Spec, SpecNode, TrialNode } from "tachisto-compiler";
 import { pluginSchema } from "../src/lib/schemas.ts";
 import {
   activeSegment,

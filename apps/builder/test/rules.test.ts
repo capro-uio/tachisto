@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { AccuracyRule, BranchNode, ResponseRule } from "@tachisto/compiler";
+import type { AccuracyRule, BranchNode, ResponseRule } from "tachisto-compiler";
 import {
   accuracyComparisonOf,
   branchBasis,

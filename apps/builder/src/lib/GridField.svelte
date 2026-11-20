@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { ParameterSchema } from "@tachisto/schemas";
-  import { gridShape } from "@tachisto/compiler";
+  import type { ParameterSchema } from "tachisto-schemas";
+  import { gridShape } from "tachisto-compiler";
   import { addColumn, addRow, removeColumn, removeRow, setCell, type Grid } from "./grid.ts";
 
   interface Props {

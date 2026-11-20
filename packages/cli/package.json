@@ -1,5 +1,5 @@
 {
-  "name": "@tachisto/cli",
+  "name": "tachisto",
   "version": "0.0.2",
   "description": "Validate and compile Tachisto experiment specs from the command line.",
   "keywords": [
@@ -46,8 +46,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@tachisto/compiler": "^0.0.2",
-    "@tachisto/schemas": "^0.0.2"
+    "tachisto-compiler": "^0.0.2",
+    "tachisto-schemas": "^0.0.2"
   },
   "types": "dist/src/index.d.ts"
 }

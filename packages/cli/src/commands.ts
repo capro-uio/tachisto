@@ -7,10 +7,10 @@ import {
   placeOf,
   SpecError,
   validateSpec,
-} from "@tachisto/compiler";
-import specSchema from "@tachisto/compiler/spec-schema.json" with { type: "json" };
-import type { Problem, Spec } from "@tachisto/compiler";
-import type { SchemaBundle } from "@tachisto/schemas";
+} from "tachisto-compiler";
+import specSchema from "tachisto-compiler/spec-schema.json" with { type: "json" };
+import type { Problem, Spec } from "tachisto-compiler";
+import type { SchemaBundle } from "tachisto-schemas";
 import type { Outcome } from "./outcome.ts";
 import { unreadableOutcome } from "./outcome.ts";
 

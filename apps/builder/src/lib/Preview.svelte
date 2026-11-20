@@ -5,8 +5,8 @@
     formatSource,
     SpecError,
     usesDevices,
-  } from "@tachisto/compiler";
-  import type { Problem, Spec } from "@tachisto/compiler";
+  } from "tachisto-compiler";
+  import type { Problem, Spec } from "tachisto-compiler";
   import { exportedSpec, project } from "./project.svelte.ts";
   import {
     compilePreview,

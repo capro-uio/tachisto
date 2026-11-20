@@ -37,7 +37,7 @@ describe("the compiler", () => {
       for (const specifier of valueImports(source)) {
         expect(specifier).not.toMatch(/^node:/);
         // The schemas package's main entry holds the extraction code, which reads the disk.
-        expect(specifier).not.toBe("@tachisto/schemas");
+        expect(specifier).not.toBe("tachisto-schemas");
       }
     },
   );

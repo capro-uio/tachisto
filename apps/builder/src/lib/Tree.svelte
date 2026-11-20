@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { isError, slotsOf } from "@tachisto/compiler";
+  import { isError, slotsOf } from "tachisto-compiler";
   import AddStep from "./AddStep.svelte";
   import { usesCode } from "./code.ts";
   import { pluginTitle } from "./schemas.ts";
   import { currentProblems, problemsAt } from "./problems.svelte.ts";
-  import type { SpecNode } from "@tachisto/compiler";
+  import type { SpecNode } from "tachisto-compiler";
   import Tree from "./Tree.svelte";
   import { moveNode, project, removeNode, type NodePath } from "./project.svelte.ts";
   import { describeAccuracy, describeBranchRule } from "./rules.ts";

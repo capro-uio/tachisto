@@ -1,6 +1,6 @@
-import { loadBundle } from "@tachisto/schemas/bundle";
-import type { ParameterSchema, Variants } from "@tachisto/schemas";
-import { takesFunction } from "@tachisto/compiler";
+import { loadBundle } from "tachisto-schemas/bundle";
+import type { ParameterSchema, Variants } from "tachisto-schemas";
+import { takesFunction } from "tachisto-compiler";
 import { codeSeed } from "./code.ts";
 
 export const schemas = loadBundle();

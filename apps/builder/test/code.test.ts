@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { codeProblem, type SpecNode } from "@tachisto/compiler";
+import { codeProblem, type SpecNode } from "tachisto-compiler";
 import { codeHint, codeSeed, usesCode } from "../src/lib/code.ts";
 import { editableParameters, schemas, startingParams } from "../src/lib/schemas.ts";
 

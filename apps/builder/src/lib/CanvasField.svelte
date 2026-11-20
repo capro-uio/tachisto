@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { Asset } from "@tachisto/compiler";
-  import type { ParameterSchema } from "@tachisto/schemas";
+  import type { Asset } from "tachisto-compiler";
+  import type { ParameterSchema } from "tachisto-schemas";
   import CanvasStage from "./CanvasStage.svelte";
   import { stageFor } from "./canvas.ts";
   import ListField from "./ListField.svelte";

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { compileSpec, specSchema, type SpecNode, type TrialNode } from "@tachisto/compiler";
+import { compileSpec, specSchema, type SpecNode, type TrialNode } from "tachisto-compiler";
 import {
   addAtInsertion,
   canHoldChildren,

@@ -11,8 +11,9 @@ this file says nothing about.
   carries the version the tag names, that the citation metadata has been regenerated for it, and
   that this file has notes for it, then publishes the packages to npm and opens the GitHub release.
   (#131)
-- `@tachisto/schemas`, `@tachisto/compiler`, `@tachisto/cli` and `@tachisto/mcp` are published to
-  npm, so `npx tachisto` and `npx tachisto-mcp` work without a clone.
+- `tachisto-schemas`, `tachisto-compiler`, `tachisto` and `tachisto-mcp` are published to npm, so
+  `npx tachisto` and `npx tachisto-mcp` work without a clone. The names are unscoped so that the
+  command someone runs is the package they install.
 - The repository states the Node it is developed on, so a contributor on an older one is told by
   `npm install` rather than by a confusing test failure.
 

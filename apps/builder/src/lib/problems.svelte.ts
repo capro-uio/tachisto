@@ -1,4 +1,4 @@
-import { compileSpec, isError, SpecError, type Problem } from "@tachisto/compiler";
+import { compileSpec, isError, SpecError, type Problem } from "tachisto-compiler";
 import { unique } from "./lists.ts";
 import { exportedSpec } from "./project.svelte.ts";
 import { schemas } from "./schemas.ts";

@@ -4,7 +4,7 @@ import {
   emitHtml,
   projectFiles,
   type Spec,
-} from "@tachisto/compiler";
+} from "tachisto-compiler";
 import { zipSync, strToU8 } from "fflate";
 import { flowFigure } from "./flow-figure.ts";
 import { fetchPackageSources } from "./package-sources.ts";

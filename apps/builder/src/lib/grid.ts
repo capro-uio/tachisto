@@ -1,5 +1,5 @@
-import { gridShape } from "@tachisto/compiler";
-import type { ParameterSchema } from "@tachisto/schemas";
+import { gridShape } from "tachisto-compiler";
+import type { ParameterSchema } from "tachisto-schemas";
 
 export type Grid = unknown[][];
 

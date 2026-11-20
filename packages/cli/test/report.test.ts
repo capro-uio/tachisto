@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { loadBundle } from "@tachisto/schemas/bundle";
-import type { Spec } from "@tachisto/compiler";
+import { loadBundle } from "tachisto-schemas/bundle";
+import type { Spec } from "tachisto-compiler";
 import { compile } from "../src/commands.ts";
 import { fakeFiles } from "./files.ts";
 import { payloadOf, reportOf } from "../src/report.ts";

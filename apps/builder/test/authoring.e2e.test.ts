@@ -5,7 +5,7 @@ import { build, preview, type PreviewServer } from "vite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { addStep, addTrial } from "./steps.ts";
 import { brandColour } from "./brand.ts";
-import type { Spec, SpecNode } from "@tachisto/compiler";
+import type { Spec, SpecNode } from "tachisto-compiler";
 
 const CONDITIONS_CSV = [
   "stim,correct_key,congruency",

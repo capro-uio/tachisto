@@ -1,4 +1,4 @@
-import type { Spec } from "@tachisto/compiler";
+import type { Spec } from "tachisto-compiler";
 import { chromium, type Browser, type Page } from "playwright";
 import { build, preview, type PreviewServer } from "vite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";

@@ -1,6 +1,6 @@
-import { isEyeTrackingStep, usesEyeTracking } from "@tachisto/compiler";
-import type { GazeTracking, Spec, TrialNode } from "@tachisto/compiler";
-import type { ParameterSchema } from "@tachisto/schemas";
+import { isEyeTrackingStep, usesEyeTracking } from "tachisto-compiler";
+import type { GazeTracking, Spec, TrialNode } from "tachisto-compiler";
+import type { ParameterSchema } from "tachisto-schemas";
 
 /**
  * Whether a step is offered gaze tracking: once the study runs the eye tracker, any step but the

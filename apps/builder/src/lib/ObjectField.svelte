@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { isCode, takesFunction, type Asset } from "@tachisto/compiler";
-  import type { ParameterSchema } from "@tachisto/schemas";
+  import { isCode, takesFunction, type Asset } from "tachisto-compiler";
+  import type { ParameterSchema } from "tachisto-schemas";
   import CodeInput from "./CodeInput.svelte";
   import { codeHint } from "./code.ts";
   import ListField from "./ListField.svelte";

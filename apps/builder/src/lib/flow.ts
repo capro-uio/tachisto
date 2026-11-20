@@ -4,8 +4,8 @@ import {
   isVariableReference,
   orderColumn,
   slotsOf,
-} from "@tachisto/compiler";
-import type { Retention, Slot, Spec, SpecNode } from "@tachisto/compiler";
+} from "tachisto-compiler";
+import type { Retention, Slot, Spec, SpecNode } from "tachisto-compiler";
 import { CHAR_WIDTH, textWidth } from "./figure.ts";
 import { describeAccuracy, describeBranchRule } from "./rules.ts";
 import { pluginTitle } from "./schemas.ts";

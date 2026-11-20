@@ -2,10 +2,10 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import type { Spec } from "@tachisto/compiler";
+import type { Spec } from "tachisto-compiler";
 import flanker from "../../../examples/flanker.json";
 import stroop from "../../../examples/stroop.json";
-import tokens from "@tachisto/brand/tokens.json" with { type: "json" };
+import tokens from "tachisto-brand/tokens.json" with { type: "json" };
 import { FLOW_TINT, flowFigureSvg } from "../src/lib/flow-figure.ts";
 import { layoutFlow } from "../src/lib/flow.ts";
 

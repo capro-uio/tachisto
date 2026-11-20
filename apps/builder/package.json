@@ -1,5 +1,5 @@
 {
-  "name": "@tachisto/builder",
+  "name": "tachisto-builder",
   "version": "0.0.2",
   "private": true,
   "license": "MIT",
@@ -12,9 +12,9 @@
     "check": "svelte-check --tsconfig ./tsconfig.json --threshold error"
   },
   "dependencies": {
-    "@tachisto/brand": "*",
-    "@tachisto/compiler": "*",
-    "@tachisto/schemas": "*",
+    "tachisto-brand": "*",
+    "tachisto-compiler": "*",
+    "tachisto-schemas": "*",
     "fflate": "^0.8.3",
     "html-to-image": "1.11.13"
   },

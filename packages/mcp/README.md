@@ -1,11 +1,11 @@
-# @tachisto/mcp
+# tachisto-mcp
 
 An [MCP](https://modelcontextprotocol.io) server for building
 [Tachisto](https://www.capro.dev/tachisto/) experiments: an agent writes a spec — one JSON document
 describing a whole behavioural study — and checks its work where it works.
 
 ```json
-{ "mcpServers": { "tachisto": { "command": "npx", "args": ["-y", "@tachisto/mcp"] } } }
+{ "mcpServers": { "tachisto": { "command": "npx", "args": ["-y", "tachisto-mcp"] } } }
 ```
 
 | Tool            | What it does                                                                    |
@@ -15,7 +15,7 @@ describing a whole behavioural study — and checks its work where it works.
 | `builder_link`  | A link that opens a published spec in the builder, for a person to look through |
 
 Both spec tools take the spec whole (`spec`) or a file to read (`path`), and answer in words and as
-the same JSON envelope `@tachisto/cli` prints. A spec that will not run comes back as an error, so
+the same JSON envelope `tachisto` prints. A spec that will not run comes back as an error, so
 a caller cannot read past it.
 
 Files are read and written inside the directory the server was started in, or inside

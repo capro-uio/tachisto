@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import bundle from "@tachisto/schemas/plugin-schemas.json" with { type: "json" };
+import bundle from "tachisto-schemas/plugin-schemas.json" with { type: "json" };
 import manifest from "../package.json" with { type: "json" };
 import { updateCodemeta } from "../src/codemeta.ts";
 import { GENERATOR_URL } from "../src/metadata.ts";

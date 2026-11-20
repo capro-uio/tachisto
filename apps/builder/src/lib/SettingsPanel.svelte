@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { backgroundColor, textColor } from "@tachisto/compiler";
+  import { backgroundColor, textColor } from "tachisto-compiler";
   import { project } from "./project.svelte.ts";
 
   type Setting =

@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { SPEC_SCHEMA_ID } from "@tachisto/compiler";
+import { SPEC_SCHEMA_ID } from "tachisto-compiler";
 import manifest from "../package.json" with { type: "json" };
 import { compileSpecSource, linkToSpec, validateSpecSource, type Answer } from "./tools.ts";
 

@@ -1,5 +1,5 @@
 import captureLibrary from "html-to-image/dist/html-to-image.js?raw";
-import { STEP_COLUMN, walkNodes, type Spec, type SpecNode } from "@tachisto/compiler";
+import { STEP_COLUMN, walkNodes, type Spec, type SpecNode } from "tachisto-compiler";
 import { compilePreview, isStepId, previewPage, tracedPreview } from "./preview.ts";
 import { segmentHolds, tableAt, type Segment, type Sequence } from "./sequence.ts";
 import { measureTextScreen, readTextScreen, type ScreenPicture } from "./text-screen.ts";

@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { isMediaType } from "@tachisto/compiler";
-  import type { Asset } from "@tachisto/compiler";
-  import type { ParameterSchema } from "@tachisto/schemas";
+  import { isMediaType } from "tachisto-compiler";
+  import type { Asset } from "tachisto-compiler";
+  import type { ParameterSchema } from "tachisto-schemas";
   import { fileChoices } from "./files.ts";
   import RichText from "./RichText.svelte";
   import { asText } from "./text.ts";

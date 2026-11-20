@@ -1,4 +1,4 @@
-import { backgroundColor, textColor, type ExperimentSettings, type Spec } from "@tachisto/compiler";
+import { backgroundColor, textColor, type ExperimentSettings, type Spec } from "tachisto-compiler";
 import { ARROW_ID, CHAR_WIDTH, figureSvg, ink, svgText, textWidth } from "./figure.ts";
 import { specFilename } from "./files.ts";
 import type { Point } from "./flow.ts";

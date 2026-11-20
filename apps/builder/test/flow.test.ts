@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Spec, SpecNode } from "@tachisto/compiler";
+import type { Spec, SpecNode } from "tachisto-compiler";
 import flanker from "../../../examples/flanker.json";
 import stroop from "../../../examples/stroop.json";
 import {

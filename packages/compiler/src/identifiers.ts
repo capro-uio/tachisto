@@ -1,4 +1,4 @@
-export { BROWSER_BUNDLE } from "@tachisto/schemas/files";
+export { BROWSER_BUNDLE } from "tachisto-schemas/files";
 
 /** The global an extension's browser bundle defines, such as jsPsychExtensionWebgazer. */
 export function extensionIdentifier(extension: string) {

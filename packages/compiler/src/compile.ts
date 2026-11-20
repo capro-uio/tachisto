@@ -1,4 +1,4 @@
-import type { ParameterSchema, SchemaBundle } from "@tachisto/schemas";
+import type { ParameterSchema, SchemaBundle } from "tachisto-schemas";
 import { compileAppearance } from "./appearance.ts";
 import { filesOfPackages } from "./package-files.ts";
 import {

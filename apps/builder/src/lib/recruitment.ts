@@ -7,8 +7,8 @@ import {
   PARTICIPANT_PLACEHOLDER,
   RECRUITMENT_PLATFORMS,
   RETENTIONS,
-} from "@tachisto/compiler";
-import type { Ending, RecruitmentPlatform, Retention, Spec } from "@tachisto/compiler";
+} from "tachisto-compiler";
+import type { Ending, RecruitmentPlatform, Retention, Spec } from "tachisto-compiler";
 
 interface PlatformGuide {
   label: string;
