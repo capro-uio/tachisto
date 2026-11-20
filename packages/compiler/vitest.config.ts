@@ -6,6 +6,10 @@ export default defineConfig({
   test: {
     fileParallelism: false,
     testTimeout: 180_000,
+    // Closing a browser and a preview server is routinely slower than vitest's 10s default for
+    // hooks, which `testTimeout` does not cover, and a teardown that times out fails the file with
+    // every test in it already passed.
+    hookTimeout: 60_000,
     coverage: {
       provider: "v8",
       include: ["src/**/*.ts", "scripts/**/*.ts"],
