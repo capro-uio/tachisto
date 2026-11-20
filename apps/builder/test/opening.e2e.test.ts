@@ -65,10 +65,13 @@ beforeAll(async () => {
   browser = await launchBrowser();
 }, 180_000);
 
+// Closing a browser and a preview server can take well past vitest's 10s default when every
+// e2e file runs its own worker, and a teardown that times out fails the file with every test in
+// it already passed.
 afterAll(async () => {
   await browser?.close();
   await server?.close();
-});
+}, 60_000);
 
 describe("opening a spec someone sent", () => {
   it("opens one pasted as JSON", async () => {

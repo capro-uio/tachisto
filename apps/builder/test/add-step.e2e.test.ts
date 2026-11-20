@@ -21,10 +21,13 @@ beforeAll(async () => {
   browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL ?? "chrome" });
 }, 180_000);
 
+// Closing a browser and a preview server can take well past vitest's 10s default when every
+// e2e file runs its own worker, and a teardown that times out fails the file with every test in
+// it already passed.
 afterAll(async () => {
   await browser?.close();
   await server?.close();
-});
+}, 60_000);
 
 describe("starting a blank experiment", () => {
   it("offers a labelled add-step button ahead of, and apart from, the examples", async () => {
