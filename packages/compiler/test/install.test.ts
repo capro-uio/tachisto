@@ -9,6 +9,7 @@ const root = fileURLToPath(new URL("../../..", import.meta.url));
 import { publishedWorkspaces, workspaceDirectories } from "./published.ts";
 
 const PUBLISHED = publishedWorkspaces();
+const DIRECTORIES = workspaceDirectories();
 
 let consumer: string;
 
@@ -52,7 +53,8 @@ beforeAll(() => {
 /** Whatever each installed package puts on the PATH, as npm would place it. */
 function installedBinaries() {
   return PUBLISHED.flatMap((workspace) => {
-    const directory = workspaceDirectories().get(workspace)!;
+    const directory = DIRECTORIES.get(workspace);
+    if (directory === undefined) throw new Error(`no workspace named ${workspace}`);
     const pkg = JSON.parse(readFileSync(join(root, directory, "package.json"), "utf8")) as {
       bin?: Record<string, string>;
     };

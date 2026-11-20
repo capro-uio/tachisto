@@ -268,7 +268,7 @@ export function bumpedManifests(root: string, version: string): Map<string, stri
   return written;
 }
 
-/** The workspaces a release publishes, in the order npm should receive them. */
+/** The workspaces a release publishes, by name. The publish order is release.yml's to state. */
 export function publishedWorkspaces(workspaces: WorkspaceVersion[]) {
   return workspaces.filter((workspace) => !workspace.private).map((workspace) => workspace.name);
 }

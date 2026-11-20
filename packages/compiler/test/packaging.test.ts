@@ -57,6 +57,17 @@ function shippedPaths(workspace: string) {
 }
 
 describe("what the published packages carry", () => {
+  // `it.each(PUBLISHED)` writes no test at all for a workspace the derivation misses, so a
+  // narrowed `publishedWorkspaces()` would empty this file rather than fail it.
+  it("is told about every package a release publishes", () => {
+    expect(PUBLISHED).toEqual([
+      "tachisto",
+      "tachisto-compiler",
+      "tachisto-mcp",
+      "tachisto-schemas",
+    ]);
+  });
+
   it.each(PUBLISHED)("publishes %s publicly", (workspace) => {
     const pkg = manifest(workspace);
     expect(pkg.private).toBeUndefined();
@@ -74,10 +85,25 @@ describe("what the published packages carry", () => {
   // installs the previous release's schemas — `^0.0.2` admits no other version to correct it.
   it.each(PUBLISHED)("asks %s for the sibling releases it is published beside", (workspace) => {
     const { dependencies } = manifest(workspace);
-    for (const [name, range] of Object.entries(dependencies ?? {})) {
-      if (!DIRECTORIES.has(name)) continue;
-      expect(range, name).toBe(`^${manifest(name).version}`);
-    }
+    // A name this repository ships but has no workspace for is the mistake this test looks for, so
+    // it reaches `manifest()` and throws rather than being skipped as though it were external.
+    const siblings = Object.entries(dependencies ?? {}).filter(([name]) =>
+      name.startsWith("tachisto"),
+    );
+    expect(Object.fromEntries(siblings)).toEqual(
+      Object.fromEntries(siblings.map(([name]) => [name, `^${manifest(name).version}`])),
+    );
+  });
+
+  // Every published package but schemas depends on a sibling, so a filter that stopped matching
+  // would leave the assertion above comparing two empty objects.
+  it("finds the sibling dependencies it is meant to be checking", () => {
+    const counted = PUBLISHED.map(
+      (workspace) =>
+        Object.keys(manifest(workspace).dependencies ?? {}).filter((name) => DIRECTORIES.has(name))
+          .length,
+    );
+    expect(counted.filter((count) => count > 0).length).toBeGreaterThan(1);
   });
 
   it("ships the schemas the compiler reads at runtime", () => {

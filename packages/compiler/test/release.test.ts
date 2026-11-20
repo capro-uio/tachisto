@@ -591,6 +591,29 @@ describe("publishedWorkspaces", () => {
     const loop = /for name in ([^;\n]+); do/.exec(workflow);
     expect(loop, "the publish loop in release.yml").not.toBeNull();
     const published = loop![1].trim().split(/\s+/);
-    expect(published.sort()).toEqual(publishedWorkspaces(workspaceVersions(repositoryRoot)).sort());
+    expect([...published].sort()).toEqual(
+      publishedWorkspaces(workspaceVersions(repositoryRoot)).sort(),
+    );
+  });
+
+  // npm does not check that a dependency exists, so a loop in the wrong order publishes an mcp
+  // whose stated compiler was never released at that version — and leaves it there, because a
+  // version cannot be taken back. A sorted comparison cannot see order, so it is asserted here.
+  it("publishes each package only after the siblings it depends on", () => {
+    const repositoryRoot = fileURLToPath(new URL("../../../", import.meta.url));
+    const workflow = readFileSync(join(repositoryRoot, ".github/workflows/release.yml"), "utf8");
+    const order = /for name in ([^;\n]+); do/.exec(workflow)![1].trim().split(/\s+/);
+    const checked: string[] = [];
+    for (const workspace of workspaceVersions(repositoryRoot).filter((found) => !found.private)) {
+      for (const { name } of workspace.internal) {
+        if (!order.includes(name)) continue;
+        checked.push(`${workspace.name} after ${name}`);
+        expect(order.indexOf(name), `${name} before ${workspace.name}`).toBeLessThan(
+          order.indexOf(workspace.name),
+        );
+      }
+    }
+    // Or the loop above would pass by never running.
+    expect(checked.length).toBeGreaterThan(0);
   });
 });
