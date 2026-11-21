@@ -1,6 +1,6 @@
 {
   "name": "tachisto",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Validate and compile Tachisto experiment specs from the command line.",
   "keywords": [
     "jsPsych",
@@ -46,8 +46,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "tachisto-compiler": "^0.0.2",
-    "tachisto-schemas": "^0.0.2"
+    "tachisto-compiler": "^0.0.3",
+    "tachisto-schemas": "^0.0.3"
   },
   "types": "dist/src/index.d.ts"
 }

@@ -12,7 +12,7 @@
   "access_right": "open",
   "license": "mit",
   "keywords": ["jsPsych", "psychology", "behavioural experiments", "online experiments", "no-code"],
-  "version": "0.0.2",
+  "version": "0.0.3",
   "related_identifiers": [
     {
       "identifier": "https://www.capro.dev/tachisto/",
