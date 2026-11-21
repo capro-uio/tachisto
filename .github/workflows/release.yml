@@ -51,9 +51,47 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: npm run notes -- --tag "$TAG"
 
+  build:
+    name: Build the packages to publish
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # No id-token here. `npm ci` runs dependencies' install scripts, and an OIDC token is a
+    # job-scoped environment variable any child process inherits — so the install that runs
+    # third-party code and the step that can mint a publishing credential are kept apart.
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build:packages
+      - name: Write the release notes, which need prettier to render
+        env:
+          TAG: ${{ github.ref_name }}
+        # --silent, or npm's own "> notes" banner would be the first line of the release.
+        run: npm run --silent notes -- --tag "$TAG" > notes.md
+      - name: Hand the built packages to the publish job
+        uses: actions/upload-artifact@v5
+        with:
+          name: packages
+          path: packages/*/dist
+          retention-days: 1
+          if-no-files-found: error
+      - name: Hand the release notes to the publish job
+        uses: actions/upload-artifact@v5
+        with:
+          name: release-notes
+          path: notes.md
+          retention-days: 1
+          if-no-files-found: error
+
   publish:
     name: Publish to npm and open the release
-    needs: verify
+    needs: [verify, build]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -67,13 +105,21 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-          cache: npm
           registry-url: https://registry.npmjs.org
-      - run: npm ci
+      - name: Take the packages the build job made
+        uses: actions/download-artifact@v6
+        with:
+          name: packages
+          path: packages
+      - name: Take the release notes the build job wrote
+        uses: actions/download-artifact@v6
+        with:
+          name: release-notes
+          path: ${{ runner.temp }}
       # Trusted publishing needs npm 11.5.1 or newer; Node 24 may still ship an older one. Pinned
       # exactly: this is the one install the lockfile does not constrain, and it does the publish.
-      - run: npm install --global npm@11.6.0
-      - run: npm run build:packages
+      # No dependencies are installed in this job at all, so nothing third-party runs beside npm.
+      - run: npm install --global --ignore-scripts npm@11.6.0
       - name: Publish the packages, each depending only on ones already out
         env:
           TAG: ${{ github.ref_name }}
@@ -94,7 +140,9 @@ jobs:
               echo "release a new version rather than re-tagging this one."
               continue
             fi
-            npm publish --workspace "$name" --tag "$dist_tag"
+            # --ignore-scripts, or `prepack` would rebuild here — which needs the dependencies this
+            # job deliberately does not have. What ships is what the build job made.
+            npm publish --workspace "$name" --ignore-scripts --tag "$dist_tag"
           done
       - name: Open the GitHub release, which Zenodo archives
         env:
@@ -105,8 +153,6 @@ jobs:
             echo "the release for $TAG is already open"
             exit 0
           fi
-          # --silent, or npm's own "> notes" banner would be the first line of the release.
-          npm run --silent notes -- --tag "$TAG" > "$RUNNER_TEMP/notes.md"
           version="${TAG#v}"
           prerelease=()
           case "$version" in
