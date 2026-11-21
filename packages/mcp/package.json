@@ -1,6 +1,6 @@
 {
   "name": "tachisto-mcp",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "An MCP server that validates and compiles Tachisto experiment specs.",
   "keywords": [
     "jsPsych",
@@ -47,9 +47,9 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",
-    "tachisto": "^0.0.2",
-    "tachisto-compiler": "^0.0.2",
-    "tachisto-schemas": "^0.0.2",
+    "tachisto": "^0.0.3",
+    "tachisto-compiler": "^0.0.3",
+    "tachisto-schemas": "^0.0.3",
     "zod": "^4.6.7"
   },
   "types": "dist/src/index.d.ts"

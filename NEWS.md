@@ -7,6 +7,11 @@ this file says nothing about.
 
 ## Unreleased
 
+## 0.0.3 (2026-11-21)
+
+The release becomes something a tag does rather than something a person remembers, and the packages
+reach npm, so running Tachisto no longer means cloning it.
+
 - The release is cut by a workflow rather than by hand: a `v*` tag checks that every workspace
   carries the version the tag names, that the citation metadata has been regenerated for it, and
   that this file has notes for it, then publishes the packages to npm and opens the GitHub release.
