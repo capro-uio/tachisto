@@ -1,14 +1,15 @@
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { chromium, type Browser, type Page } from "playwright";
+import { type Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { servedWorkspace } from "./served.ts";
 import { compileSpec } from "../src/compile.ts";
 import { emitHtml } from "../src/targets/html.ts";
 import type { Asset, Spec } from "../src/types.ts";
-import { serveDirectory, type StaticServer } from "./server.ts";
 import { schemas } from "./schemas.ts";
 
+const served = servedWorkspace({ args: ["--autoplay-policy=no-user-gesture-required"] });
 const PAGE_NAME = "responses.e2e.html";
 const workspaceRoot = fileURLToPath(new URL("../../../", import.meta.url));
 
@@ -52,25 +53,15 @@ const spec: Spec = {
   ],
 };
 
-let browser: Browser;
-let server: StaticServer;
-
 beforeAll(async () => {
   const { html } = await emitHtml(compileSpec(spec, schemas), {
     title: spec.name,
     base: "/node_modules",
   });
   writeFileSync(join(workspaceRoot, PAGE_NAME), html);
-  server = await serveDirectory(workspaceRoot);
-  browser = await chromium.launch({
-    channel: process.env.PLAYWRIGHT_CHANNEL ?? "chrome",
-    args: ["--autoplay-policy=no-user-gesture-required"],
-  });
 }, 120_000);
 
-afterAll(async () => {
-  await browser?.close();
-  await server?.close();
+afterAll(() => {
   rmSync(join(workspaceRoot, PAGE_NAME), { force: true });
 });
 
@@ -91,10 +82,10 @@ async function videoDecodes(page: Page) {
 
 describe("videos and sounds answered with keys or buttons", () => {
   it("plays each, takes the answer, and records it", async () => {
-    const page = await browser.newPage();
+    const page = await served.browser.newPage();
     const errors: string[] = [];
     page.on("pageerror", (error) => errors.push(error.message));
-    await page.goto(`${server.url}/${PAGE_NAME}`);
+    await page.goto(`${served.server.url}/${PAGE_NAME}`);
 
     await shown(page, "video key");
     await videoDecodes(page);

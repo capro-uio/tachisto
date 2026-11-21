@@ -1,21 +1,21 @@
 import { rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { chromium, type Browser, type Page } from "playwright";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { type Page } from "playwright";
+import { afterAll, afterEach, describe, expect, it } from "vitest";
+import { servedWorkspace } from "./served.ts";
 import { compileSpec } from "../src/compile.ts";
 import { emitHtml } from "../src/targets/html.ts";
 import type { Spec, SpecNode } from "../src/types.ts";
 import { recordsOf } from "./csv.ts";
-import { serveDirectory, type StaticServer } from "./server.ts";
 import { schemas } from "./schemas.ts";
 
+const served = servedWorkspace({
+  args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"],
+});
 const PAGE_NAME = "gaze.e2e.html";
 const workspaceRoot = fileURLToPath(new URL("../../../", import.meta.url));
 const STIMULUS = "#jspsych-html-keyboard-response-stimulus";
-
-let browser: Browser;
-let server: StaticServer;
 
 // WebGazer only lets a participant on once it sees a face, which Chrome's stand-in camera never
 // shows. This stands in for it with WebGazer's own interface and its ways: it sees a face at once;
@@ -54,7 +54,7 @@ const setUp: SpecNode = { kind: "trial", plugin: "webgazer-init-camera" };
 
 const eyeTrackingStudy = (): Spec => ({
   name: "gaze",
-  data: { save: "post", experiment_id: "testExperiment", endpoint: server.url },
+  data: { save: "post", experiment_id: "testExperiment", endpoint: served.server.url },
   timeline: [
     setUp,
     {
@@ -95,7 +95,7 @@ async function open(spec: Spec, webgazer?: string, watch?: (page: Page) => void)
     base: "/node_modules",
   });
   writeFileSync(join(workspaceRoot, PAGE_NAME), html);
-  const page = await browser.newPage();
+  const page = await served.browser.newPage();
   if (webgazer) {
     await page.route("**/node_modules/webgazer/dist/webgazer.js", (route) =>
       route.fulfill({ contentType: "text/javascript", body: webgazer }),
@@ -104,7 +104,7 @@ async function open(spec: Spec, webgazer?: string, watch?: (page: Page) => void)
   watch?.(page);
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.stack ?? error.message));
-  await page.goto(`${server.url}/${PAGE_NAME}?participant_id=p1`);
+  await page.goto(`${served.server.url}/${PAGE_NAME}?participant_id=p1`);
   return { page, errors };
 }
 
@@ -114,21 +114,11 @@ async function continuePastSetUp(page: Page) {
   await button.click();
 }
 
-beforeAll(async () => {
-  server = await serveDirectory(workspaceRoot);
-  browser = await chromium.launch({
-    channel: process.env.PLAYWRIGHT_CHANNEL ?? "chrome",
-    args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"],
-  });
-}, 120_000);
-
 afterEach(() => {
-  server.uploads.length = 0;
+  served.server.uploads.length = 0;
 });
 
-afterAll(async () => {
-  await browser?.close();
-  await server?.close();
+afterAll(() => {
   rmSync(join(workspaceRoot, PAGE_NAME), { force: true });
 });
 
@@ -140,8 +130,8 @@ describe("a study that tracks gaze", () => {
       await page.locator("#calibration-point").click({ timeout: 15_000 });
     }
 
-    await expect.poll(() => server.uploads.length, { timeout: 20_000 }).toBe(1);
-    const rows = recordsOf(server.uploads[0].data);
+    await expect.poll(() => served.server.uploads.length, { timeout: 20_000 }).toBe(1);
+    const rows = recordsOf(served.server.uploads[0].data);
     const looked = rows.find((row) => row.tag === "looked")!;
     const samples = JSON.parse(looked.webgazer_data) as { x: number; y: number; t: number }[];
     // Every sample live, none taken from the frame calibration ended on, and each timed.

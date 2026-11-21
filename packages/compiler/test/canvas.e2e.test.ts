@@ -1,14 +1,15 @@
 import { rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { chromium, type Browser, type Page } from "playwright";
+import { type Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { servedWorkspace } from "./served.ts";
 import { compileSpec } from "../src/compile.ts";
 import { emitHtml } from "../src/targets/html.ts";
 import type { Spec } from "../src/types.ts";
-import { serveDirectory, type StaticServer } from "./server.ts";
 import { schemas } from "./schemas.ts";
 
+const served = servedWorkspace();
 const PAGE_NAMES = { numbers: "canvas.e2e.html", text: "canvas-text.e2e.html" };
 const EMPTY = "rgba(0, 0, 0, 0)";
 const workspaceRoot = fileURLToPath(new URL("../../../", import.meta.url));
@@ -50,9 +51,6 @@ const canvasSpec = (offsets: [unknown, unknown]): Spec => ({
   ],
 });
 
-let browser: Browser;
-let server: StaticServer;
-
 // Reads the canvas in its own pixels, which the plugin scales by the device pixel ratio. The
 // background is the element's CSS, so an empty spot reads as transparent.
 async function colourAt(page: Page, x: number, y: number) {
@@ -81,13 +79,9 @@ beforeAll(async () => {
     const { html } = await emitHtml(compiled, { title: "canvas", base: "/node_modules" });
     writeFileSync(join(workspaceRoot, name), html);
   }
-  server = await serveDirectory(workspaceRoot);
-  browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL ?? "chrome" });
 }, 120_000);
 
-afterAll(async () => {
-  await browser?.close();
-  await server?.close();
+afterAll(() => {
   for (const name of Object.values(PAGE_NAMES)) rmSync(join(workspaceRoot, name), { force: true });
 });
 
@@ -95,7 +89,7 @@ describe("a compiled canvas step", () => {
   it.each(Object.entries(PAGE_NAMES))(
     "draws each row's objects where and how the row says, with offsets as %s",
     async (_, pageName) => {
-      const page = await browser.newPage();
+      const page = await served.browser.newPage();
       const problems: string[] = [];
       page.on("pageerror", (error) => problems.push(error.message));
       page.on("console", (message) => {
@@ -107,7 +101,7 @@ describe("a compiled canvas step", () => {
         await dialog.dismiss();
       });
 
-      await page.goto(`${server.url}/${pageName}`);
+      await page.goto(`${served.server.url}/${pageName}`);
       await page.locator("#myCanvas").waitFor();
       await page.waitForTimeout(200);
       expect(await colourAt(page, 200 - 120, 150)).toBe("rgba(255, 0, 0, 255)");

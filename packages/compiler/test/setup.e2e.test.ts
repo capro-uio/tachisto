@@ -1,14 +1,15 @@
 import { rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { chromium, type Browser, type Page } from "playwright";
+import { type Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { servedWorkspace } from "./served.ts";
 import { compileSpec } from "../src/compile.ts";
 import { emitHtml } from "../src/targets/html.ts";
 import type { Spec } from "../src/types.ts";
-import { serveDirectory, type StaticServer } from "./server.ts";
 import { schemas } from "./schemas.ts";
 
+const served = servedWorkspace();
 const PAGE_NAME = "setup.e2e.html";
 const CONSENT_PAGE = "setup-consent.e2e.html";
 const workspaceRoot = fileURLToPath(new URL("../../../", import.meta.url));
@@ -33,9 +34,6 @@ const spec: Spec = {
   ],
 };
 
-let browser: Browser;
-let server: StaticServer;
-
 beforeAll(async () => {
   const { html } = await emitHtml(compileSpec(spec, schemas), {
     title: spec.name,
@@ -46,13 +44,9 @@ beforeAll(async () => {
     join(workspaceRoot, CONSENT_PAGE),
     '<p>Do you agree to take part?</p><button id="agree">I agree</button>',
   );
-  server = await serveDirectory(workspaceRoot);
-  browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL ?? "chrome" });
 }, 120_000);
 
-afterAll(async () => {
-  await browser?.close();
-  await server?.close();
+afterAll(() => {
   rmSync(join(workspaceRoot, PAGE_NAME), { force: true });
   rmSync(join(workspaceRoot, CONSENT_PAGE), { force: true });
 });
@@ -69,10 +63,10 @@ async function rowOf(page: Page, tag: string) {
 
 describe("setting up a session", () => {
   it("checks the browser, calibrates, shows a page from the site, and takes a form", async () => {
-    const page = await browser.newPage();
+    const page = await served.browser.newPage();
     const errors: string[] = [];
     page.on("pageerror", (error) => errors.push(error.message));
-    await page.goto(`${server.url}/${PAGE_NAME}`);
+    await page.goto(`${served.server.url}/${PAGE_NAME}`);
 
     expect((await rowOf(page, "browser")).width).toBeGreaterThan(0);
 
