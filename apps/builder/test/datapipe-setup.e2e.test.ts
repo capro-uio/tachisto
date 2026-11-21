@@ -1,23 +1,9 @@
 import type { Spec } from "tachisto-compiler";
-import { chromium, type Browser, type Page } from "playwright";
-import { build, preview, type PreviewServer } from "vite";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { type Page } from "playwright";
+import { describe, expect, it } from "vitest";
+import { runningApp } from "./app.ts";
 
-let browser: Browser;
-let server: PreviewServer;
-let appUrl: string;
-
-beforeAll(async () => {
-  await build({ logLevel: "warn" });
-  server = await preview({ preview: { port: 0 }, logLevel: "warn" });
-  appUrl = server.resolvedUrls!.local[0];
-  browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL ?? "chrome" });
-}, 180_000);
-
-afterAll(async () => {
-  await browser?.close();
-  await server?.close();
-});
+const app = runningApp();
 
 const screen = (text: string) => ({
   kind: "trial" as const,
@@ -41,7 +27,7 @@ const study: Spec = {
 };
 
 async function openStudy(page: Page, spec: Spec) {
-  await page.goto(appUrl);
+  await page.goto(app.url);
   await page.getByTestId("header-menu").click();
   await page.getByTestId("import-spec").setInputFiles({
     name: "study.json",
@@ -60,7 +46,7 @@ const text = (page: Page, testId: string) => page.getByTestId(testId).innerText(
 
 describe("the checklist for setting up DataPipe", () => {
   it("appears only once the study uploads to DataPipe, open until it has an experiment ID", async () => {
-    const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
+    const page = await app.browser.newPage({ viewport: { width: 1500, height: 900 } });
     await openStudy(page, study);
     expect(await page.getByTestId("datapipe-setup").count()).toBe(0);
 
@@ -75,7 +61,7 @@ describe("the checklist for setting up DataPipe", () => {
   }, 120_000);
 
   it("is filled in from the study, and follows it as it changes", async () => {
-    const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
+    const page = await app.browser.newPage({ viewport: { width: 1500, height: 900 } });
     await openStudy(page, study);
     await page.getByTestId("data-mode").selectOption("post");
 
@@ -112,7 +98,7 @@ describe("the checklist for setting up DataPipe", () => {
   }, 120_000);
 
   it("gives no number of conditions when two steps share DataPipe's counter, and warns", async () => {
-    const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
+    const page = await app.browser.newPage({ viewport: { width: 1500, height: 900 } });
     await openStudy(page, {
       ...study,
       data: { save: "post", experiment_id: "abc123DEF456" },
@@ -136,7 +122,7 @@ describe("the checklist for setting up DataPipe", () => {
   }, 120_000);
 
   it("fills in the session limit and the affiliation once the study gives them", async () => {
-    const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
+    const page = await app.browser.newPage({ viewport: { width: 1500, height: 900 } });
     await openStudy(page, study);
     await page.getByTestId("data-mode").selectOption("post");
     const limit = "datapipe-stop-after-a-set-number-of-sessions";
@@ -170,9 +156,9 @@ describe("the checklist for setting up DataPipe", () => {
   }, 120_000);
 
   it("copies a value with a labelled button", async () => {
-    const context = await browser.newContext({ viewport: { width: 1500, height: 900 } });
+    const context = await app.browser.newContext({ viewport: { width: 1500, height: 900 } });
     await context.grantPermissions(["clipboard-read", "clipboard-write"], {
-      origin: new URL(appUrl).origin,
+      origin: new URL(app.url).origin,
     });
     const page = await context.newPage();
     await openStudy(page, study);
@@ -191,7 +177,7 @@ describe("the checklist for setting up DataPipe", () => {
   }, 120_000);
 
   it("links to the study's DataPipe only when its address is usable, and says when it is not", async () => {
-    const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
+    const page = await app.browser.newPage({ viewport: { width: 1500, height: 900 } });
     await openStudy(page, study);
     await page.getByTestId("data-mode").selectOption("post");
     const checklist = page.getByTestId("datapipe-setup");
@@ -220,7 +206,7 @@ describe("the checklist for setting up DataPipe", () => {
   }, 120_000);
 
   it("closes once the experiment has an ID, and ends where the ID goes", async () => {
-    const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
+    const page = await app.browser.newPage({ viewport: { width: 1500, height: 900 } });
     await openStudy(page, {
       ...study,
       data: { save: "post", experiment_id: "abc123DEF456" },
@@ -239,7 +225,7 @@ describe("the checklist for setting up DataPipe", () => {
 
 describe("what a study does when DataPipe hands out no condition", () => {
   it("stops by default, and draws in the browser only when asked, saying what that risks", async () => {
-    const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
+    const page = await app.browser.newPage({ viewport: { width: 1500, height: 900 } });
     await openStudy(page, study);
     await page.getByTestId("data-mode").selectOption("post");
 
@@ -259,7 +245,7 @@ describe("what a study does when DataPipe hands out no condition", () => {
   }, 120_000);
 
   it("is not asked about by a study that asks DataPipe for nothing", async () => {
-    const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
+    const page = await app.browser.newPage({ viewport: { width: 1500, height: 900 } });
     await openStudy(page, { ...study, timeline: [screen("hello")] });
     await page.getByTestId("data-mode").selectOption("post");
     expect(await page.getByTestId("data-condition-fallback").count()).toBe(0);

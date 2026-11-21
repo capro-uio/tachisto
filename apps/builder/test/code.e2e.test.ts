@@ -1,27 +1,12 @@
-import { chromium, type Browser } from "playwright";
-import { build, preview, type PreviewServer } from "vite";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
+import { runningApp } from "./app.ts";
 
-let browser: Browser;
-let server: PreviewServer;
-let appUrl: string;
-
-beforeAll(async () => {
-  await build({ logLevel: "warn" });
-  server = await preview({ preview: { port: 0 }, logLevel: "warn" });
-  appUrl = server.resolvedUrls!.local[0];
-  browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL ?? "chrome" });
-}, 180_000);
-
-afterAll(async () => {
-  await browser?.close();
-  await server?.close();
-});
+const app = runningApp();
 
 describe("writing code for a parameter", () => {
   it("starts from the value it held, runs in the preview, and marks the step", async () => {
-    const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
-    await page.goto(appUrl);
+    const page = await app.browser.newPage({ viewport: { width: 1500, height: 900 } });
+    await page.goto(app.url);
     await page.getByTestId("example-flanker").click();
     await page.getByTestId("node-0").click();
 
@@ -39,8 +24,8 @@ describe("writing code for a parameter", () => {
   }, 120_000);
 
   it("says what is wrong with code that does not parse, before it is saved", async () => {
-    const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
-    await page.goto(appUrl);
+    const page = await app.browser.newPage({ viewport: { width: 1500, height: 900 } });
+    await page.goto(app.url);
     await page.getByTestId("example-flanker").click();
     await page.getByTestId("node-0").click();
 
@@ -55,8 +40,8 @@ describe("writing code for a parameter", () => {
   }, 120_000);
 
   it("offers a function parameter as code only, starting from the plugin's own", async () => {
-    const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
-    await page.goto(appUrl);
+    const page = await app.browser.newPage({ viewport: { width: 1500, height: 900 } });
+    await page.goto(app.url);
     await page.getByTestId("example-flanker").click();
     await page.getByTestId("node-0").click();
     await page.getByTestId("trial-plugin").selectOption("html-button-response");

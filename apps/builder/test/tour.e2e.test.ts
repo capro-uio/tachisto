@@ -1,6 +1,6 @@
-import { chromium, type Browser, type Page } from "playwright";
-import { build, preview, type PreviewServer } from "vite";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { type Page } from "playwright";
+import { describe, expect, it } from "vitest";
+import { runningApp } from "./app.ts";
 import { TOUR_STEPS } from "../src/lib/tour.svelte.ts";
 import { brandColour } from "./brand.ts";
 
@@ -9,21 +9,7 @@ const VIEWPORTS = [
   { name: "phone", width: 420, height: 780, columns: false },
 ];
 
-let browser: Browser;
-let server: PreviewServer;
-let appUrl: string;
-
-beforeAll(async () => {
-  await build({ logLevel: "warn" });
-  server = await preview({ preview: { port: 0 }, logLevel: "warn" });
-  appUrl = server.resolvedUrls!.local[0];
-  browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL ?? "chrome" });
-}, 180_000);
-
-afterAll(async () => {
-  await browser?.close();
-  await server?.close();
-});
+const app = runningApp();
 
 /** Where the callout, the highlight and the thing it is meant to highlight are on screen. */
 function layout(page: Page, target: string | undefined) {
@@ -55,8 +41,8 @@ async function settledOn(page: Page, id: string) {
 
 describe.each(VIEWPORTS)("at $name ($width×$height)", ({ width, height, columns }) => {
   it("walks through every part of the builder from an empty start", async () => {
-    const page = await browser.newPage({ viewport: { width, height } });
-    await page.goto(appUrl);
+    const page = await app.browser.newPage({ viewport: { width, height } });
+    await page.goto(app.url);
     await page.getByTestId("start-tour").click();
 
     // An empty project has nothing to point at, so the tour opens an example to show.
@@ -100,8 +86,8 @@ describe.each(VIEWPORTS)("at $name ($width×$height)", ({ width, height, columns
 
 describe("the tour", () => {
   it("starts from the menu without replacing the experiment that is open", async () => {
-    const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
-    await page.goto(appUrl);
+    const page = await app.browser.newPage({ viewport: { width: 1500, height: 900 } });
+    await page.goto(app.url);
     await page.getByTestId("example-stroop").click();
     const name = await page.getByTestId("experiment-name").inputValue();
 
@@ -115,8 +101,8 @@ describe("the tour", () => {
   }, 120_000);
 
   it("follows the arrow keys and leaves on Escape", async () => {
-    const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
-    await page.goto(appUrl);
+    const page = await app.browser.newPage({ viewport: { width: 1500, height: 900 } });
+    await page.goto(app.url);
     await page.getByTestId("start-tour").click();
     await settledOn(page, "welcome");
 
@@ -132,8 +118,8 @@ describe("the tour", () => {
   }, 120_000);
 
   it("keeps keyboard focus inside the callout", async () => {
-    const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
-    await page.goto(appUrl);
+    const page = await app.browser.newPage({ viewport: { width: 1500, height: 900 } });
+    await page.goto(app.url);
     await page.getByTestId("start-tour").click();
     await settledOn(page, "welcome");
     await page.keyboard.press("ArrowRight");
@@ -150,8 +136,8 @@ describe("the tour", () => {
   }, 120_000);
 
   it("hands focus to the menu it can be reopened from when it closes", async () => {
-    const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
-    await page.goto(appUrl);
+    const page = await app.browser.newPage({ viewport: { width: 1500, height: 900 } });
+    await page.goto(app.url);
     await page.getByTestId("start-tour").click();
     await settledOn(page, "welcome");
     await page.keyboard.press("Escape");
@@ -164,8 +150,8 @@ describe("the tour", () => {
   }, 120_000);
 
   it("reads well in dark mode", async () => {
-    const page = await browser.newPage({ colorScheme: "dark" });
-    await page.goto(appUrl);
+    const page = await app.browser.newPage({ colorScheme: "dark" });
+    await page.goto(app.url);
     await page.getByTestId("start-tour").click();
     await settledOn(page, "welcome");
     const colours = await page.evaluate(() => {

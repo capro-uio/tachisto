@@ -1,6 +1,6 @@
-import { chromium, type Browser, type Page } from "playwright";
-import { build, preview, type PreviewServer } from "vite";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { type Page } from "playwright";
+import { describe, expect, it } from "vitest";
+import { runningApp } from "./app.ts";
 
 const VIEWPORTS = [
   { name: "desktop", width: 1500, height: 900, columns: true },
@@ -10,12 +10,10 @@ const VIEWPORTS = [
   { name: "phone", width: 420, height: 780, columns: false },
 ];
 
-let browser: Browser;
-let server: PreviewServer;
-let appUrl: string;
+const app = runningApp();
 
 async function fillWithContent(page: Page) {
-  await page.goto(appUrl);
+  await page.goto(app.url);
   await page.getByTestId("example-stroop").click();
   // A scored trial inside the block, so the middle column has a long form in it.
   await page.getByTestId("node-2-1").click();
@@ -54,21 +52,9 @@ function reach(page: Page, testId: string) {
   }, testId);
 }
 
-beforeAll(async () => {
-  await build({ logLevel: "warn" });
-  server = await preview({ preview: { port: 0 }, logLevel: "warn" });
-  appUrl = server.resolvedUrls!.local[0];
-  browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL ?? "chrome" });
-}, 180_000);
-
-afterAll(async () => {
-  await browser?.close();
-  await server?.close();
-});
-
 describe.each(VIEWPORTS)("at $name ($width×$height)", ({ width, height, columns }) => {
   it("lets you reach the bottom of the sidebar and of a long form", async () => {
-    const page = await browser.newPage({ viewport: { width, height } });
+    const page = await app.browser.newPage({ viewport: { width, height } });
     await fillWithContent(page);
 
     await page.getByTestId("tab-study").click();
@@ -82,7 +68,7 @@ describe.each(VIEWPORTS)("at $name ($width×$height)", ({ width, height, columns
   it(
     columns ? "pins the shell so each column scrolls" : "scrolls the page",
     async () => {
-      const page = await browser.newPage({ viewport: { width, height } });
+      const page = await app.browser.newPage({ viewport: { width, height } });
       await fillWithContent(page);
 
       const overflow = await page.evaluate(() => {
@@ -111,8 +97,8 @@ describe.each(VIEWPORTS)("at $name ($width×$height)", ({ width, height, columns
 
 describe("resizing the panels", () => {
   it("drags a boundary, remembers it, and resets on double click", async () => {
-    const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
-    await page.goto(appUrl);
+    const page = await app.browser.newPage({ viewport: { width: 1500, height: 900 } });
+    await page.goto(app.url);
 
     const widthOf = (selector: string) =>
       page.evaluate((css) => document.querySelector(css)!.getBoundingClientRect().width, selector);
@@ -139,8 +125,8 @@ describe("resizing the panels", () => {
   }, 120_000);
 
   it("moves the boundary between the form and the preview too", async () => {
-    const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
-    await page.goto(appUrl);
+    const page = await app.browser.newPage({ viewport: { width: 1500, height: 900 } });
+    await page.goto(app.url);
     const widthOf = (selector: string) =>
       page.evaluate((css) => document.querySelector(css)!.getBoundingClientRect().width, selector);
 
@@ -158,8 +144,8 @@ describe("resizing the panels", () => {
   }, 120_000);
 
   it("takes the keyboard as well as the pointer", async () => {
-    const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
-    await page.goto(appUrl);
+    const page = await app.browser.newPage({ viewport: { width: 1500, height: 900 } });
+    await page.goto(app.url);
     const widthOf = () =>
       page.evaluate(() => document.querySelector("aside")!.getBoundingClientRect().width);
 
@@ -175,8 +161,8 @@ describe("resizing the panels", () => {
 
 describe("the sidebar tabs", () => {
   it("never cuts off a tab's name, however narrow the panel", async () => {
-    const page = await browser.newPage({ viewport: { width: 1100, height: 800 } });
-    await page.goto(appUrl);
+    const page = await app.browser.newPage({ viewport: { width: 1100, height: 800 } });
+    await page.goto(app.url);
 
     const clipped = await page.evaluate(() =>
       [...document.querySelectorAll('[data-testid^="tab-"]')].map((tab) => ({
@@ -194,8 +180,8 @@ describe("the sidebar tabs", () => {
 describe("the header logo", () => {
   // Nothing open in the builder is saved anywhere, so leaving the page would lose it.
   it("opens the website beside the builder rather than in place of it", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await page.getByTestId("example-stroop").click();
     const link = page.locator("header a.brand");
     expect(await link.getAttribute("target")).toBe("_blank");
@@ -205,8 +191,8 @@ describe("the header logo", () => {
 
   it("shows the light wordmark on light ground and the dark one on dark", async () => {
     for (const colorScheme of ["light", "dark"] as const) {
-      const page = await browser.newPage({ colorScheme });
-      await page.goto(appUrl);
+      const page = await app.browser.newPage({ colorScheme });
+      await page.goto(app.url);
       const visible = await page
         .locator("header a.brand picture")
         .evaluateAll((pictures: HTMLElement[]) =>

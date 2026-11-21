@@ -1,22 +1,8 @@
-import { chromium, type Browser, type Page } from "playwright";
-import { build, preview, type PreviewServer } from "vite";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { type Page } from "playwright";
+import { describe, expect, it } from "vitest";
+import { runningApp } from "./app.ts";
 
-let browser: Browser;
-let server: PreviewServer;
-let appUrl: string;
-
-beforeAll(async () => {
-  await build({ logLevel: "warn" });
-  server = await preview({ preview: { port: 0 }, logLevel: "warn" });
-  appUrl = server.resolvedUrls!.local[0];
-  browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL ?? "chrome" });
-}, 180_000);
-
-afterAll(async () => {
-  await browser?.close();
-  await server?.close();
-});
+const app = runningApp();
 
 async function openProjectWithStimulus(page: Page, stimulus: string) {
   const spec = {
@@ -38,8 +24,8 @@ const ran = (page: Page) =>
 describe("text from a project someone else made", () => {
   // A named element shadows the page's own document methods, which the editor calls.
   it("keeps named elements from replacing the builder's own functions", async () => {
-    const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
-    await page.goto(appUrl);
+    const page = await app.browser.newPage({ viewport: { width: 1500, height: 900 } });
+    await page.goto(app.url);
     await openProjectWithStimulus(page, '<p name="createRange">a</p><p id="getSelection">b</p>');
 
     await expect
@@ -50,8 +36,8 @@ describe("text from a project someone else made", () => {
   }, 120_000);
 
   it("edits a style that fetches from elsewhere as HTML", async () => {
-    const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
-    await page.goto(appUrl);
+    const page = await app.browser.newPage({ viewport: { width: 1500, height: 900 } });
+    await page.goto(app.url);
     await openProjectWithStimulus(page, '<p style="background: url(https://example.com/x)">a</p>');
 
     await expect
@@ -70,8 +56,8 @@ describe("text from a project someone else made", () => {
   ])(
     "is shown as HTML, without running in the builder: %s",
     async (stimulus) => {
-      const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
-      await page.goto(appUrl);
+      const page = await app.browser.newPage({ viewport: { width: 1500, height: 900 } });
+      await page.goto(app.url);
       await openProjectWithStimulus(page, stimulus);
 
       // Long enough for an image's error handler to have fired, had the markup been put live.
@@ -86,8 +72,8 @@ describe("text from a project someone else made", () => {
   );
 
   it("still opens formatted text in the formatted editor", async () => {
-    const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
-    await page.goto(appUrl);
+    const page = await app.browser.newPage({ viewport: { width: 1500, height: 900 } });
+    await page.goto(app.url);
     await openProjectWithStimulus(page, '<p style="color: red"><b>Press</b> any key</p>');
 
     await expect

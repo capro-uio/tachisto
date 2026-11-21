@@ -1,11 +1,9 @@
-import { chromium, type Browser, type Locator } from "playwright";
-import { build, preview, type PreviewServer } from "vite";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { type Locator } from "playwright";
+import { describe, expect, it } from "vitest";
+import { runningApp } from "./app.ts";
 import { addStep } from "./steps.ts";
 
-let browser: Browser;
-let server: PreviewServer;
-let appUrl: string;
+const app = runningApp();
 
 const MIN_TARGET = 24;
 
@@ -14,22 +12,10 @@ async function heightOf(locator: Locator) {
   return box?.height ?? 0;
 }
 
-beforeAll(async () => {
-  await build({ logLevel: "warn" });
-  server = await preview({ preview: { port: 0 }, logLevel: "warn" });
-  appUrl = server.resolvedUrls!.local[0];
-  browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL ?? "chrome" });
-}, 180_000);
-
-afterAll(async () => {
-  await browser?.close();
-  await server?.close();
-});
-
 describe("starting a blank experiment", () => {
   it("offers a labelled add-step button ahead of, and apart from, the examples", async () => {
-    const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
-    await page.goto(appUrl);
+    const page = await app.browser.newPage({ viewport: { width: 1400, height: 900 } });
+    await page.goto(app.url);
 
     const add = page.getByRole("button", { name: "Add step" });
     await expect.poll(() => add.isVisible()).toBe(true);
@@ -49,8 +35,8 @@ describe("starting a blank experiment", () => {
   }, 120_000);
 
   it("opens the step menu from the button, by keyboard as well as by click", async () => {
-    const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
-    await page.goto(appUrl);
+    const page = await app.browser.newPage({ viewport: { width: 1400, height: 900 } });
+    await page.goto(app.url);
 
     const add = page.getByTestId("slot-0");
     await add.focus();
@@ -68,8 +54,8 @@ describe("starting a blank experiment", () => {
 
 describe("a timeline with steps in it", () => {
   it("ends every list with a visible add-step button", async () => {
-    const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
-    await page.goto(appUrl);
+    const page = await app.browser.newPage({ viewport: { width: 1400, height: 900 } });
+    await page.goto(app.url);
     await page.getByTestId("example-stroop").click();
 
     const steps = await page.getByTestId(/^node-\d+$/).count();
