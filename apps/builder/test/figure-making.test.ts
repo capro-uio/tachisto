@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { Spec } from "@tachisto/compiler";
+import type { Spec } from "tachisto-compiler";
 import stroop from "../../../examples/stroop.json";
 import {
   figureName,

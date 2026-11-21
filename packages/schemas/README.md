@@ -1,11 +1,11 @@
-# @tachisto/schemas
+# tachisto-schemas
 
 JSON Schema for every [jsPsych](https://www.jspsych.org) plugin, extracted from each plugin's own
 `info.parameters` and the JSDoc in its shipped type declarations — so a form or an editor can
 describe the whole plugin ecosystem without anyone hand-writing it.
 
 ```js
-import { loadBundle } from "@tachisto/schemas/bundle";
+import { loadBundle } from "tachisto-schemas/bundle";
 
 const { jspsych, plugins } = loadBundle();
 plugins["html-keyboard-response"].properties.stimulus; // title, description, type, examples

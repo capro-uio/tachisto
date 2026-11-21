@@ -2,10 +2,6 @@ node_modules/
 dist/
 *.tsbuildinfo
 .DS_Store
-flanker.e2e.html
-hostile.e2e.html
-upload.e2e.html
-groups.e2e.html
-branch.e2e.html
+*.e2e.html
 coverage/
 dist-pages/

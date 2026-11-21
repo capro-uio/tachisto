@@ -1,5 +1,5 @@
-import { builderLink, SPEC_PARAMETER } from "@tachisto/compiler";
-import type { Spec } from "@tachisto/compiler";
+import { builderLink, SPEC_PARAMETER } from "tachisto-compiler";
+import type { Spec } from "tachisto-compiler";
 import { parseSpec } from "./project.svelte.ts";
 
 /**

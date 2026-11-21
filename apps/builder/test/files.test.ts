@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Asset } from "@tachisto/compiler";
+import type { Asset } from "tachisto-compiler";
 import { fileChoices } from "../src/lib/files.ts";
 
 const file = (name: string, type: string): Asset => ({

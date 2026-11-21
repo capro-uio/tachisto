@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { preloadListOf } from "@tachisto/compiler";
+  import { preloadListOf } from "tachisto-compiler";
   import { project } from "./project.svelte.ts";
 
   const MAX_BYTES = 5 * 1024 * 1024;

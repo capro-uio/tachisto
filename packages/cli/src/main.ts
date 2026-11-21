@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { loadBundle } from "@tachisto/schemas/bundle";
+import { loadBundle } from "tachisto-schemas/bundle";
 import manifest from "../package.json" with { type: "json" };
 import { parseArgs, USAGE } from "./args.ts";
 import { compile, nodeFiles as files, specSchemaDocument, validate } from "./commands.ts";

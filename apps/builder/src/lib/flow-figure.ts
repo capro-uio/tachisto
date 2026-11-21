@@ -1,4 +1,4 @@
-import type { Spec } from "@tachisto/compiler";
+import type { Spec } from "tachisto-compiler";
 import { ARROW_ID, figureSvg, ink, svgText } from "./figure.ts";
 import { specFilename } from "./files.ts";
 import { pageSize, type FigureSize } from "./trial-figure.ts";

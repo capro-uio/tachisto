@@ -1,4 +1,4 @@
-import type { PackageCredit, SchemaBundle } from "@tachisto/schemas";
+import type { PackageCredit, SchemaBundle } from "tachisto-schemas";
 
 /** A file a study's page loads from a package, with the hash any copy of it must match. */
 export interface PackageFile {

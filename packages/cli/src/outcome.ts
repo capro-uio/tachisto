@@ -1,4 +1,4 @@
-import type { Problem } from "@tachisto/compiler";
+import type { Problem } from "tachisto-compiler";
 
 /** A problem with where it is in words, which needs the spec the path points into. */
 export interface Located extends Problem {

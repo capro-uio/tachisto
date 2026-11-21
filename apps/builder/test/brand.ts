@@ -1,4 +1,4 @@
-import tokens from "@tachisto/brand/tokens.json" with { type: "json" };
+import tokens from "tachisto-brand/tokens.json" with { type: "json" };
 
 type Theme = "light" | "dark";
 

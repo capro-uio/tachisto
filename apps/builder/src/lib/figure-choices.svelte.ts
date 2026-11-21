@@ -1,4 +1,4 @@
-import type { Spec } from "@tachisto/compiler";
+import type { Spec } from "tachisto-compiler";
 import { NO_CONDITIONS, type BlockChoice } from "./figure-making.ts";
 import { containerName } from "./sequence.ts";
 import { readStored, writeStored } from "./storage.ts";

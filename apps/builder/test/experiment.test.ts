@@ -1,6 +1,6 @@
 import { strFromU8, unzipSync } from "fflate";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { Spec } from "@tachisto/compiler";
+import type { Spec } from "tachisto-compiler";
 import flanker from "../../../examples/flanker.json";
 import {
   buildExperimentHtml,

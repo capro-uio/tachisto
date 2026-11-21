@@ -10,7 +10,7 @@ import {
   type Spec,
   type SpecNode,
   type TrialNode,
-} from "@tachisto/compiler";
+} from "tachisto-compiler";
 import { schemas } from "./schemas.ts";
 
 /**

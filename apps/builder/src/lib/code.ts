@@ -6,8 +6,8 @@ import {
   trialsOf,
   type ParameterValue,
   type SpecNode,
-} from "@tachisto/compiler";
-import type { ParameterSchema } from "@tachisto/schemas";
+} from "tachisto-compiler";
+import type { ParameterSchema } from "tachisto-schemas";
 
 const BLANK_FUNCTION = "() => {\n}";
 

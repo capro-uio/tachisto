@@ -1,5 +1,5 @@
-import tokens from "@tachisto/brand/tokens.json" with { type: "json" };
-import { escapeHtmlText } from "@tachisto/compiler";
+import tokens from "tachisto-brand/tokens.json" with { type: "json" };
+import { escapeHtmlText } from "tachisto-compiler";
 
 const LIGHT_INKS = new Map(tokens.color.tokens.map((token) => [token.name, token.value.light]));
 

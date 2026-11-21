@@ -79,13 +79,13 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           version="${TAG#v}"
-          # A prerelease must not become what `npm install @tachisto/cli` gives people.
+          # A prerelease must not become what `npm install tachisto` gives people.
           case "$version" in
             *-*) dist_tag=next ;;
             *) dist_tag=latest ;;
           esac
-          for package in schemas compiler cli mcp; do
-            name="@tachisto/$package"
+          # Dependency order: each is published only after the siblings it depends on.
+          for name in tachisto-schemas tachisto-compiler tachisto tachisto-mcp; do
             # A tag is retried when a later package fails, or when a new one has yet to be
             # configured for trusted publishing; the ones already out are left alone.
             if npm view "$name@$version" version >/dev/null 2>&1; then

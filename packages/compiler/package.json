@@ -1,5 +1,5 @@
 {
-  "name": "@tachisto/compiler",
+  "name": "tachisto-compiler",
   "version": "0.0.2",
   "description": "Compiles a declarative Tachisto spec to readable jsPsych source and a runnable HTML experiment.",
   "keywords": [
@@ -42,15 +42,15 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
-    "prespec-schema": "npm run build --workspace @tachisto/schemas",
+    "prespec-schema": "npm run build --workspace tachisto-schemas",
     "spec-schema": "node src/cli.ts schema",
-    "precodemeta": "npm run build --workspace @tachisto/schemas",
+    "precodemeta": "npm run build --workspace tachisto-schemas",
     "codemeta": "node src/cli.ts codemeta",
     "version": "npm run codemeta",
     "prepack": "npm run build"
   },
   "dependencies": {
-    "@tachisto/schemas": "^0.0.2",
+    "tachisto-schemas": "^0.0.2",
     "acorn": "^8.19.0",
     "prettier": "^3.9.10"
   },

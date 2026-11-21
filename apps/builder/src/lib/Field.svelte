@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { ParameterSchema } from "@tachisto/schemas";
-  import { isCode, isVariableReference, takesFunction } from "@tachisto/compiler";
+  import type { ParameterSchema } from "tachisto-schemas";
+  import { isCode, isVariableReference, takesFunction } from "tachisto-compiler";
   import CanvasField from "./CanvasField.svelte";
   import CodeInput from "./CodeInput.svelte";
   import GridField from "./GridField.svelte";
@@ -8,7 +8,7 @@
   import { codeHint, codeSeed } from "./code.ts";
   import ListField from "./ListField.svelte";
   import ScalarInput from "./ScalarInput.svelte";
-  import type { Asset, ParameterValue } from "@tachisto/compiler";
+  import type { Asset, ParameterValue } from "tachisto-compiler";
 
   interface Props {
     assets: Asset[];

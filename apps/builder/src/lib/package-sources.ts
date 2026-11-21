@@ -1,5 +1,5 @@
-import { cdnUrl, packageFileKey, type PackageFile } from "@tachisto/compiler";
-import { integrityOf } from "@tachisto/schemas/files";
+import { cdnUrl, packageFileKey, type PackageFile } from "tachisto-compiler";
+import { integrityOf } from "tachisto-schemas/files";
 
 const TURN_OFF = "check the connection, or turn off Self-contained under Downloads in the menu";
 

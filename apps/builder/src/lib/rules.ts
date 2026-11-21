@@ -1,5 +1,5 @@
-import { accuracyComparison, isResponseRule } from "@tachisto/compiler";
-import type { AccuracyRule, BranchNode, ResponseRule } from "@tachisto/compiler";
+import { accuracyComparison, isResponseRule } from "tachisto-compiler";
+import type { AccuracyRule, BranchNode, ResponseRule } from "tachisto-compiler";
 
 export type BranchBasis = "accuracy" | "response";
 export type AccuracyComparison = "at_least" | "below";

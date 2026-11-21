@@ -1,4 +1,4 @@
-import type { SchemaBundle } from "@tachisto/schemas";
+import type { SchemaBundle } from "tachisto-schemas";
 import { assetPath } from "../assets.ts";
 import { compileSpec } from "../compile.ts";
 import { ENDING_COLUMN, ownDataPipeAddress } from "../data.ts";

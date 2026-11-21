@@ -13,7 +13,7 @@
     setInsertion,
     type NodePath,
   } from "./project.svelte.ts";
-  import type { SpecNode } from "@tachisto/compiler";
+  import type { SpecNode } from "tachisto-compiler";
   import { newAssign } from "./project.svelte.ts";
   import { startingParams } from "./schemas.ts";
 

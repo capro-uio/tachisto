@@ -1,4 +1,4 @@
-import { isVariableReference, type ParameterValue } from "@tachisto/compiler";
+import { isVariableReference, type ParameterValue } from "tachisto-compiler";
 import { asText } from "./text.ts";
 
 export type CanvasObject = Record<string, unknown>;

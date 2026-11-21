@@ -39,13 +39,13 @@ maintainable by a small team.
 
 ## Packages
 
-| Package              | What it does                                                                                                                                                 |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `@tachisto/schemas`  | Turns every plugin's `info.parameters` plus the JSDoc in its shipped `.d.ts` into JSON Schema, so the builder's forms are generated rather than hand-written |
-| `@tachisto/compiler` | Compiles a declarative spec to jsPsych source and emits an HTML experiment                                                                                   |
-| `@tachisto/cli`      | `tachisto validate`, `compile` and `schema`, for building a study from a spec without the builder — or without a person                                      |
-| `@tachisto/mcp`      | Validating, compiling and a link back to the builder, served over MCP, so an agent authoring a study checks it where it works                                |
-| `@tachisto/brand`    | Colours, type, logos and the brand book (`packages/brand/BRAND.md`), shared by the builder and the website                                                   |
+| Package             | What it does                                                                                                                                                 |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `tachisto-schemas`  | Turns every plugin's `info.parameters` plus the JSDoc in its shipped `.d.ts` into JSON Schema, so the builder's forms are generated rather than hand-written |
+| `tachisto-compiler` | Compiles a declarative spec to jsPsych source and emits an HTML experiment                                                                                   |
+| `tachisto`          | `tachisto validate`, `compile` and `schema`, for building a study from a spec without the builder — or without a person                                      |
+| `tachisto-mcp`      | Validating, compiling and a link back to the builder, served over MCP, so an agent authoring a study checks it where it works                                |
+| `tachisto-brand`    | Colours, type, logos and the brand book (`packages/brand/BRAND.md`), shared by the builder and the website                                                   |
 
 The builder lives in `apps/builder`, and the website that introduces it in `apps/site`.
 
@@ -321,12 +321,12 @@ them, which is the only way to see that.
 ### From the command line
 
 A spec is the whole study, so anything that can write one can build a study — a person who would
-rather type than click, or a program doing it on someone's behalf. `@tachisto/cli` is that door:
+rather type than click, or a program doing it on someone's behalf. `tachisto` is that door:
 
 ```sh
-npx @tachisto/cli validate study.json   # is this a study that will run?
-npx @tachisto/cli compile study.json    # write study.html, ready to host
-npx @tachisto/cli schema                # the spec schema this release was built against
+npx tachisto validate study.json   # is this a study that will run?
+npx tachisto compile study.json    # write study.html, ready to host
+npx tachisto schema                # the spec schema this release was built against
 ```
 
 It exits `0` when there is nothing wrong, `1` when the spec has errors, `2` when the command
@@ -364,7 +364,7 @@ trust that asks for is the same as the builder's, described in
 [Code, and projects from other people](#code-and-projects-from-other-people).
 
 Compiling needs no jsPsych plugin installed. The plugin schemas are extracted once and committed,
-not read when a spec is compiled, so `npx @tachisto/cli` is the whole of the install. Regenerating
+not read when a spec is compiled, so `npx tachisto` is the whole of the install. Regenerating
 them from the installed plugins is the other half of that split and a maintainer's job:
 `npm run schemas` for `plugin-schemas.json`, `npm run spec-schema` for the spec's own schema.
 
@@ -385,11 +385,11 @@ emitting it.
 
 ### From an agent
 
-`@tachisto/mcp` serves the same two commands over MCP, plus a link back to the builder, so
+`tachisto-mcp` serves the same two commands over MCP, plus a link back to the builder, so
 something writing a spec can check its work as it goes:
 
 ```json
-{ "mcpServers": { "tachisto": { "command": "npx", "args": ["-y", "@tachisto/mcp"] } } }
+{ "mcpServers": { "tachisto": { "command": "npx", "args": ["-y", "tachisto-mcp"] } } }
 ```
 
 - `validate_spec` takes the spec whole (`spec`) or a file to read (`path`), and answers both in

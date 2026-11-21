@@ -1,8 +1,8 @@
-@import "@tachisto/brand/fonts.css";
-@import "@tachisto/brand/tokens.css";
-@import "@tachisto/brand/base.css";
-@import "@tachisto/brand/type.css";
-@import "@tachisto/brand/logos.css";
+@import "tachisto-brand/fonts.css";
+@import "tachisto-brand/tokens.css";
+@import "tachisto-brand/base.css";
+@import "tachisto-brand/type.css";
+@import "tachisto-brand/logos.css";
 
 /* One trial of the hero animation, in the same proportions as the blocks on its track. */
 :root {

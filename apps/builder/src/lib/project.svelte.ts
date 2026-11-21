@@ -1,13 +1,7 @@
-import { conditionColumns as columnsOfTable } from "@tachisto/compiler";
-import {
-  childrenOf,
-  earlyEndingNames,
-  nodesAlongPath,
-  slotsOf,
-  trialsOf,
-} from "@tachisto/compiler";
-import { assertSpecShape, SPEC_SCHEMA_ID } from "@tachisto/compiler";
-import { firstFreeColumn, usualColumn } from "@tachisto/compiler";
+import { conditionColumns as columnsOfTable } from "tachisto-compiler";
+import { childrenOf, earlyEndingNames, nodesAlongPath, slotsOf, trialsOf } from "tachisto-compiler";
+import { assertSpecShape, SPEC_SCHEMA_ID } from "tachisto-compiler";
+import { firstFreeColumn, usualColumn } from "tachisto-compiler";
 import { unique } from "./lists.ts";
 import { addEnding, DEFAULT_EARLY_ENDING } from "./recruitment.ts";
 import { DEFAULT_THRESHOLD } from "./rules.ts";
@@ -19,7 +13,7 @@ import type {
   Spec,
   SpecNode,
   TrialNode,
-} from "@tachisto/compiler";
+} from "tachisto-compiler";
 
 export type NodePath = number[];
 

@@ -4,12 +4,12 @@
     isResponseRule,
     latinSquareOrders,
     questionNames,
-  } from "@tachisto/compiler";
-  import type { AssignNode, CounterbalanceNode, ParameterValue } from "@tachisto/compiler";
+  } from "tachisto-compiler";
+  import type { AssignNode, CounterbalanceNode, ParameterValue } from "tachisto-compiler";
   import Field from "./Field.svelte";
   import GazeSection from "./GazeSection.svelte";
   import { offersGazeTracking, retargetGaze } from "./gaze.ts";
-  import { COLUMN_SETTINGS, earlyEndingNames } from "@tachisto/compiler";
+  import { COLUMN_SETTINGS, earlyEndingNames } from "tachisto-compiler";
   import {
     accuracyComparisonOf,
     branchBasis,

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { lstatSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
-import { builderLink } from "@tachisto/compiler";
+import { builderLink } from "tachisto-compiler";
 import {
   compile,
   nodeFiles,
@@ -11,8 +11,8 @@ import {
   validate,
   type Files,
   type Payload,
-} from "@tachisto/cli";
-import { loadBundle } from "@tachisto/schemas/bundle";
+} from "tachisto";
+import { loadBundle } from "tachisto-schemas/bundle";
 import manifest from "../package.json" with { type: "json" };
 
 const bundle = loadBundle();

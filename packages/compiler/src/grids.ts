@@ -1,4 +1,4 @@
-import type { ParameterSchema } from "@tachisto/schemas";
+import type { ParameterSchema } from "tachisto-schemas";
 
 /** What each place of a grid holds: a square that is there (1) or not (0), a number, or a key. */
 export type GridPlace = "square" | "integer" | "number" | "key";

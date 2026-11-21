@@ -6,9 +6,10 @@ import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 
 const root = fileURLToPath(new URL("../../..", import.meta.url));
-import { publishedWorkspaces } from "./published.ts";
+import { publishedWorkspaces, workspaceDirectories } from "./published.ts";
 
 const PUBLISHED = publishedWorkspaces();
+const DIRECTORIES = workspaceDirectories();
 
 let consumer: string;
 
@@ -17,7 +18,7 @@ const run = (command: string, args: string[], cwd: string) =>
 
 /**
  * Installs the real tarballs into a directory of their own. Everything else about packaging can be
- * checked by reading manifests; this cannot. Inside the repository every @tachisto package is a
+ * checked by reading manifests; this cannot. Inside the repository every tachisto package is a
  * symlink whose target lies outside node_modules, so source that an install could never run — a
  * .ts entry point, a path that only resolves in the workspace — works perfectly here and fails
  * only for someone who installed it.
@@ -52,7 +53,8 @@ beforeAll(() => {
 /** Whatever each installed package puts on the PATH, as npm would place it. */
 function installedBinaries() {
   return PUBLISHED.flatMap((workspace) => {
-    const directory = workspace.replace("@tachisto/", "packages/");
+    const directory = DIRECTORIES.get(workspace);
+    if (directory === undefined) throw new Error(`no workspace named ${workspace}`);
     const pkg = JSON.parse(readFileSync(join(root, directory, "package.json"), "utf8")) as {
       bin?: Record<string, string>;
     };
@@ -75,8 +77,8 @@ describe("the packages as someone else installs them", () => {
 
   it("compiles a study from an installed copy, with no jsPsych plugin present", () => {
     const script = `
-      const { compileSpec, emitHtml } = await import("@tachisto/compiler");
-      const { loadBundle } = await import("@tachisto/schemas/bundle");
+      const { compileSpec, emitHtml } = await import("tachisto-compiler");
+      const { loadBundle } = await import("tachisto-schemas/bundle");
       const spec = { name: "beep", timeline: [{ kind: "trial", plugin: "html-keyboard-response", params: { stimulus: "<p>hi</p>" } }] };
       const { html } = await emitHtml(compileSpec(spec, loadBundle()), { title: spec.name, base: "cdn" });
       console.log(html.includes("<html") ? "ok" : "no html");

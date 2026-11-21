@@ -6,7 +6,7 @@ export const usageText = () =>
 
 It is started by an MCP client rather than by hand:
 
-  { "mcpServers": { "tachisto": { "command": "npx", "args": ["-y", "@tachisto/mcp"] } } }
+  { "mcpServers": { "tachisto": { "command": "npx", "args": ["-y", "tachisto-mcp"] } } }
 
 Tools: validate_spec, compile_spec, builder_link.
 Reads and writes only inside ${rootDirectory()} (set TACHISTO_MCP_ROOT to choose).`;

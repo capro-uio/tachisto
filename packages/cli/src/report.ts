@@ -1,4 +1,4 @@
-import { isError } from "@tachisto/compiler";
+import { isError } from "tachisto-compiler";
 import type { Located, Outcome } from "./outcome.ts";
 import { EXIT_CODES } from "./outcome.ts";
 

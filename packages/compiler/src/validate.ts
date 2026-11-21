@@ -1,4 +1,4 @@
-import type { ParameterSchema, PluginSchema, PluginSchemas, Variants } from "@tachisto/schemas";
+import type { ParameterSchema, PluginSchema, PluginSchemas, Variants } from "tachisto-schemas";
 import type {
   Asset,
   AccuracyRule,

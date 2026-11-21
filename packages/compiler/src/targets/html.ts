@@ -5,7 +5,7 @@ import {
   JSPSYCH_STYLESHEET,
   breaksOut,
   type Element,
-} from "@tachisto/schemas/files";
+} from "tachisto-schemas/files";
 import { cdnUrl, packageFileKey, thirdPartyComment } from "../package-files.ts";
 import { generatorLabel } from "../metadata.ts";
 import { formatSource } from "../format.ts";

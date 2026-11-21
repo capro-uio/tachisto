@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ParameterSchema } from "@tachisto/schemas";
+import type { ParameterSchema } from "tachisto-schemas";
 import {
   addColumn,
   addRow,

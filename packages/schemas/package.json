@@ -1,5 +1,5 @@
 {
-  "name": "@tachisto/schemas",
+  "name": "tachisto-schemas",
   "version": "0.0.2",
   "description": "JSON Schema for every jsPsych plugin, extracted from each plugin's own info.parameters and the JSDoc in its shipped type declarations.",
   "keywords": [

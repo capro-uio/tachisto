@@ -1,4 +1,4 @@
-import type { Library } from "@tachisto/schemas";
+import type { Library } from "tachisto-schemas";
 import type { PackageFile } from "./package-files.ts";
 import type { Problem } from "./validate.ts";
 

@@ -26,11 +26,11 @@ that validates is a study that runs.
 
 ## Building one
 
-- Command line: `npx @tachisto/cli validate study.json` and `npx @tachisto/cli compile study.json`.
+- Command line: `npx tachisto validate study.json` and `npx tachisto compile study.json`.
   Add `--json` to either for one machine-readable envelope instead of lines. Exit `0` nothing
   wrong, `1` the spec has errors, `2` the command could not be read, `70` a fault inside Tachisto.
   Warnings never fail a command.
-- MCP: `npx @tachisto/mcp` serves `validate_spec`, `compile_spec` and `builder_link` over stdio.
+- MCP: `npx tachisto-mcp` serves `validate_spec`, `compile_spec` and `builder_link` over stdio.
   It reads and writes only inside the directory it was started in, or `TACHISTO_MCP_ROOT`, so a
   spec cannot choose which files are touched. A link named as the study or the spec is refused
   rather than followed.

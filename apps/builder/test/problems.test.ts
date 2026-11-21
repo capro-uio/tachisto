@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Problem, Spec } from "@tachisto/compiler";
+import type { Problem, Spec } from "tachisto-compiler";
 import { loadSpec } from "../src/lib/project.svelte.ts";
 import {
   currentProblems,

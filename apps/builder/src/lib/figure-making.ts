@@ -1,4 +1,4 @@
-import type { Spec } from "@tachisto/compiler";
+import type { Spec } from "tachisto-compiler";
 import type { captureScreens } from "./screen-capture.ts";
 import {
   conditionColumns,

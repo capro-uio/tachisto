@@ -8,11 +8,15 @@ export default defineConfig({
   plugins: [svelte()],
   base: "./",
   // The brand's logos are served as they are, so only the one the theme shows is fetched.
-  publicDir: dirname(fileURLToPath(import.meta.resolve("@tachisto/brand/logos/favicon.svg"))),
+  publicDir: dirname(fileURLToPath(import.meta.resolve("tachisto-brand/logos/favicon.svg"))),
   server: { port: 5180 },
   test: {
     fileParallelism: false,
     testTimeout: 180_000,
+    // Closing a browser and a preview server is routinely slower than vitest's 10s default for
+    // hooks, which `testTimeout` does not cover, and a teardown that times out fails the file with
+    // every test in it already passed.
+    hookTimeout: 60_000,
     // Components run only inside the browser in the end-to-end suites, where V8 coverage in Node
     // cannot see them; what is measured here is the logic in plain modules.
     coverage: {

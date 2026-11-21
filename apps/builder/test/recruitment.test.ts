@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { earlyEndingNames, idParamOf, retentionOf } from "@tachisto/compiler";
-import type { Spec } from "@tachisto/compiler";
+import { earlyEndingNames, idParamOf, retentionOf } from "tachisto-compiler";
+import type { Spec } from "tachisto-compiler";
 import {
   addEnding,
   choosePlatform,

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { TrialNode } from "@tachisto/compiler";
+  import type { TrialNode } from "tachisto-compiler";
   import ListField from "./ListField.svelte";
   import {
     SELECTOR_LIST,

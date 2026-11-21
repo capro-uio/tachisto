@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { idParamOf, retentionOf } from "@tachisto/compiler";
-  import type { Retention } from "@tachisto/compiler";
+  import { idParamOf, retentionOf } from "tachisto-compiler";
+  import type { Retention } from "tachisto-compiler";
   import { project } from "./project.svelte.ts";
   import {
     addEnding,

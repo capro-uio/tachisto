@@ -1,7 +1,7 @@
 import flanker from "../../../../examples/flanker.json";
 import stroop from "../../../../examples/stroop.json";
 import shapes from "../../../../examples/shapes.json";
-import type { Spec } from "@tachisto/compiler";
+import type { Spec } from "tachisto-compiler";
 
 export interface Example {
   id: string;

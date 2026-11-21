@@ -19,7 +19,7 @@ function optionValue(name: string, fallback: string) {
 const [command] = process.argv.slice(2);
 
 // Regenerating the files this repository commits. Compiling a spec is `tachisto`, from
-// @tachisto/cli, which needs none of the plugin packages this does.
+// tachisto, which needs none of the plugin packages this does.
 if (!["schema", "codemeta"].includes(command)) {
   console.error(
     "usage: node src/cli.ts schema [--out <file>]\n" +

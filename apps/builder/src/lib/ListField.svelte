@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { Asset } from "@tachisto/compiler";
-  import type { ParameterSchema } from "@tachisto/schemas";
+  import type { Asset } from "tachisto-compiler";
+  import type { ParameterSchema } from "tachisto-schemas";
   import ObjectField from "./ObjectField.svelte";
   import ScalarInput from "./ScalarInput.svelte";
 

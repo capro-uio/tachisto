@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import type { Spec } from "@tachisto/compiler";
+import type { Spec } from "tachisto-compiler";
 import stroop from "../../../examples/stroop.json";
 import { pluginSchema } from "../src/lib/schemas.ts";
 import { sequenceAt, type Segment, type Sequence } from "../src/lib/sequence.ts";

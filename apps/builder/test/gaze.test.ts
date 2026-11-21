@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import type { Spec, TrialNode } from "@tachisto/compiler";
+import type { Spec, TrialNode } from "tachisto-compiler";
 import {
   offersGazeTracking,
   otherTargets,

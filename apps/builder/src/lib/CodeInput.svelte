@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { codeProblem } from "@tachisto/compiler";
+  import { codeProblem } from "tachisto-compiler";
 
   interface Props {
     code: string;

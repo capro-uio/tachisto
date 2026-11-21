@@ -57,10 +57,10 @@ The tag is checked, not trusted. It is refused unless:
   packages already published came from the old one, and the release would describe a commit that
   produced only some of them. Release a new patch version instead.
 - **A prerelease stays out of the way.** A version with a hyphen (`1.0.0-rc.1`) publishes to npm's
-  `next` tag, not `latest`, and opens a GitHub prerelease, so `npm install @tachisto/cli` keeps
+  `next` tag, not `latest`, and opens a GitHub prerelease, so `npm install tachisto` keeps
   giving people the last real release. Zenodo still archives it, so use one only when that is
   wanted.
-- **Private workspaces may say `*`.** `@tachisto/brand`, `@tachisto/builder` and `@tachisto/site`
+- **Private workspaces may say `*`.** `tachisto-brand`, `tachisto-builder` and `tachisto-site`
   are never published, so a `*` range between them means "whatever this repository has". A
   published package may not: a `*` there would ship a dependency on whatever the registry holds
   next, or on a package nobody can install.
@@ -82,10 +82,13 @@ allows that only once the package exists. A package's **first** publish is there
 ```sh
 npm login
 npm run build:packages
-npm publish --workspace @tachisto/<name> --access public
+npm publish --workspace <name>
 ```
 
-Then, at `npmjs.com/package/@tachisto/<name>` → Settings → Trusted publisher, choose GitHub
+A prerelease needs `--tag next`, which npm insists on rather than letting an rc become what
+`npm install` gives people.
+
+Then, at `npmjs.com/package/<name>` → Settings → Trusted publisher, choose GitHub
 Actions and give it:
 
 - repository `capro-uio/tachisto`
@@ -96,6 +99,6 @@ automatically. A package that has not been configured will fail the publish step
 error; the GitHub release is opened after publishing, so the tag can be retried once the setting is
 in place.
 
-The published packages are `@tachisto/schemas`, `@tachisto/compiler`, `@tachisto/cli` and
-`@tachisto/mcp`. `@tachisto/brand`, `@tachisto/builder` and `@tachisto/site` are private: they
+The published packages are `tachisto-schemas`, `tachisto-compiler`, `tachisto` and
+`tachisto-mcp`. `tachisto-brand`, `tachisto-builder` and `tachisto-site` are private: they
 carry the version so that one release means one version everywhere, but they are never published.

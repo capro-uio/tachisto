@@ -1,4 +1,4 @@
-import type { ParameterSchema, PluginSchema, PluginSchemas } from "@tachisto/schemas";
+import type { ParameterSchema, PluginSchema, PluginSchemas } from "tachisto-schemas";
 import {
   ENDING_NAME_PATTERN,
   RECRUITMENT_PLATFORMS,

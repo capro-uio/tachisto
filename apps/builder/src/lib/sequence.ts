@@ -1,6 +1,6 @@
-import { isVariableReference, nodesAlongPath, trialsOf, walkNodes } from "@tachisto/compiler";
-import type { ParameterValue, PlacedNode, Spec, SpecNode, TrialNode } from "@tachisto/compiler";
-import type { PluginSchema } from "@tachisto/schemas";
+import { isVariableReference, nodesAlongPath, trialsOf, walkNodes } from "tachisto-compiler";
+import type { ParameterValue, PlacedNode, Spec, SpecNode, TrialNode } from "tachisto-compiler";
+import type { PluginSchema } from "tachisto-schemas";
 import type { Playback } from "./playback.svelte.ts";
 
 /** The shortest and longest a value can be, across the rows of a conditions table. */

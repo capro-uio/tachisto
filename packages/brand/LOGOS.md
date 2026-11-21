@@ -7,6 +7,6 @@
 - `tachisto-app-icon.svg` / `tachisto-app-icon-dark.svg`: the t on a `radius-lg` tile. Use it for the PWA manifest, social cards and app stores.
 - `favicon.svg`: switches inks with `prefers-color-scheme`.
 - `tachisto-loader.svg`: the animated t alone, for spinners and preview loading.
-- `tachisto-social-card.png`: the 1200×630 link-preview card the website names in its Open Graph tags. It is rendered from `scripts/social-card.ts`; run `npm run social-card --workspace @tachisto/brand` after changing the wordmark, inks or fonts.
+- `tachisto-social-card.png`: the 1200×630 link-preview card the website names in its Open Graph tags. It is rendered from `scripts/social-card.ts`; run `npm run social-card --workspace tachisto-brand` after changing the wordmark, inks or fonts.
 
 All files have fixed inks: `<img>` can't recolour them, so pick the light or dark file to match the ground.

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { compileSpec } from "@tachisto/compiler";
-import type { Spec } from "@tachisto/compiler";
+import { compileSpec } from "tachisto-compiler";
+import type { Spec } from "tachisto-compiler";
 import {
   compilePreview,
   isStepId,

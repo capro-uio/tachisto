@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { STEP_COLUMN, type Spec } from "@tachisto/compiler";
+import { STEP_COLUMN, type Spec } from "tachisto-compiler";
 import flanker from "../../../examples/flanker.json";
 import stroop from "../../../examples/stroop.json";
 import { pluginSchema } from "../src/lib/schemas.ts";
