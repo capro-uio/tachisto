@@ -1,27 +1,12 @@
-import { chromium, type Browser } from "playwright";
-import { build, preview, type PreviewServer } from "vite";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
+import { runningApp } from "./app.ts";
 
-let browser: Browser;
-let server: PreviewServer;
-let appUrl: string;
-
-beforeAll(async () => {
-  await build({ logLevel: "warn" });
-  server = await preview({ preview: { port: 0 }, logLevel: "warn" });
-  appUrl = server.resolvedUrls!.local[0];
-  browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL ?? "chrome" });
-}, 180_000);
-
-afterAll(async () => {
-  await browser?.close();
-  await server?.close();
-});
+const app = runningApp();
 
 describe("the preview and the keyboard", () => {
   it("does not take the cursor from a field being edited when it restarts", async () => {
-    const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
-    await page.goto(appUrl);
+    const page = await app.browser.newPage({ viewport: { width: 1500, height: 900 } });
+    await page.goto(app.url);
     await page.getByTestId("example-flanker").click();
     const name = page.getByTestId("experiment-name");
     await name.fill("");
@@ -40,8 +25,8 @@ describe("the preview and the keyboard", () => {
   }, 120_000);
 
   it("answers keys once you click into it", async () => {
-    const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
-    await page.goto(appUrl);
+    const page = await app.browser.newPage({ viewport: { width: 1500, height: 900 } });
+    await page.goto(app.url);
     await page.getByTestId("example-flanker").click();
     const frame = page.frameLocator('[data-testid="preview"]');
     const content = frame.locator("#jspsych-content");
@@ -57,9 +42,9 @@ describe("the preview and the keyboard", () => {
 describe("when the formatter cannot load", () => {
   // Prettier is fetched on demand, so a deploy that replaced its chunk can make it unavailable.
   it("says the preview could not be built, and still shows the code unformatted", async () => {
-    const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
+    const page = await app.browser.newPage({ viewport: { width: 1500, height: 900 } });
     await page.route("**/assets/standalone-*.js", (route) => route.abort());
-    await page.goto(appUrl);
+    await page.goto(app.url);
     await page.getByTestId("example-flanker").click();
 
     await expect

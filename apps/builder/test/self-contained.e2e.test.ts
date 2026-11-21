@@ -1,28 +1,13 @@
 import { readFileSync } from "node:fs";
-import { chromium, type Browser } from "playwright";
-import { build, preview, type PreviewServer } from "vite";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
+import { runningApp } from "./app.ts";
 
-let browser: Browser;
-let server: PreviewServer;
-let appUrl: string;
-
-beforeAll(async () => {
-  await build({ logLevel: "warn" });
-  server = await preview({ preview: { port: 0 }, logLevel: "warn" });
-  appUrl = server.resolvedUrls!.local[0];
-  browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL ?? "chrome" });
-}, 180_000);
-
-afterAll(async () => {
-  await browser?.close();
-  await server?.close();
-});
+const app = runningApp();
 
 /** The builder with the flanker example open and the menu showing the download option. */
 async function openMenu() {
-  const page = await browser.newPage();
-  await page.goto(appUrl);
+  const page = await app.browser.newPage();
+  await page.goto(app.url);
   await page.getByTestId("example-flanker").click();
   await page.getByTestId("header-menu").click();
   return page;
@@ -39,7 +24,7 @@ describe("a self-contained download", () => {
     const html = readFileSync(await file.path(), "utf8");
     await builder.close();
 
-    const participant = await browser.newPage();
+    const participant = await app.browser.newPage();
     const reached: string[] = [];
     await participant.route(/^https?:/, (route) => {
       reached.push(route.request().url());

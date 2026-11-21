@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { chromium, type Browser, type Page } from "playwright";
-import { build, preview, type PreviewServer } from "vite";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { type Page } from "playwright";
+import { describe, expect, it } from "vitest";
+import { runningApp } from "./app.ts";
 import { addStep, addTrial } from "./steps.ts";
 import { brandColour } from "./brand.ts";
 import type { Spec, SpecNode } from "tachisto-compiler";
@@ -19,9 +19,7 @@ const INSTRUCTIONS =
   "<p>Press <b>f</b> for a left-pointing centre arrow, <b>j</b> for right.</p>" +
   "<p>Press any key to begin.</p>";
 
-let browser: Browser;
-let server: PreviewServer;
-let appUrl: string;
+const app = runningApp();
 
 async function setText(page: Page, testId: string, value: string) {
   const field = page.getByTestId(testId);
@@ -116,24 +114,12 @@ async function buildFlanker(page: Page) {
   await page.getByTestId("record-congruency").check();
 }
 
-beforeAll(async () => {
-  await build({ logLevel: "warn" });
-  server = await preview({ preview: { port: 0 }, logLevel: "warn" });
-  appUrl = server.resolvedUrls!.local[0];
-  browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL ?? "chrome" });
-}, 180_000);
-
-afterAll(async () => {
-  await browser?.close();
-  await server?.close();
-});
-
 describe("authoring the flanker task through the UI", () => {
   it("produces the reference spec and a running preview", async () => {
-    const page = await browser.newPage();
+    const page = await app.browser.newPage();
     const pageErrors: string[] = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
-    await page.goto(appUrl);
+    await page.goto(app.url);
 
     await buildFlanker(page);
 
@@ -157,8 +143,8 @@ describe("authoring the flanker task through the UI", () => {
 
 describe("recruiting from a platform", () => {
   it("fills in the platform's id parameter and sends participants back once data is saved", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await addTrial(page, "html-keyboard-response", "slot-0");
     await setFixed(page, "stimulus", "<p>hello</p>");
 
@@ -201,8 +187,8 @@ describe("recruiting from a platform", () => {
 
 describe("choosing where data goes", () => {
   it("warns when nothing is saved, and records the upload settings once chosen", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await addTrial(page, "html-keyboard-response", "slot-0");
     await setFixed(page, "stimulus", "<p>hello</p>");
 
@@ -232,8 +218,8 @@ describe("choosing where data goes", () => {
   }, 120_000);
 
   it("saves each step as it goes only when asked, saying what that means for consent", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await addTrial(page, "html-keyboard-response", "slot-0");
     await setFixed(page, "stimulus", "<p>hello</p>");
 
@@ -266,8 +252,8 @@ describe("choosing where data goes", () => {
 
 describe("using an image file", () => {
   it("embeds an added file and shows it in the running preview", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
 
     await openTab(page, "files");
     await page
@@ -316,8 +302,8 @@ describe("using an image file", () => {
 
 describe("a parameter that takes a list", () => {
   it("builds instruction pages in the formatted editor and steps through them", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await addTrial(page, "instructions", "slot-0");
 
     await page.getByTestId("mode-pages").selectOption("fixed");
@@ -370,8 +356,8 @@ describe("a parameter that takes a list", () => {
 
 describe("a list whose entries are objects", () => {
   it("builds a Likert question and renders its scale in the preview", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await addTrial(page, "survey-likert", "slot-0");
 
     // A new question step arrives with one question, ready to edit rather than empty.
@@ -399,8 +385,8 @@ describe("a list whose entries are objects", () => {
 
 describe("a multiple-choice question", () => {
   it("arrives ready to run and offers its options in the preview", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await addTrial(page, "survey-multi-choice", "slot-0");
 
     await setText(page, "value-questions-0-prompt", "Which colour?");
@@ -419,8 +405,8 @@ describe("a multiple-choice question", () => {
   }, 180_000);
 
   it("offers its questions to a branch on the answer, and follows the one chosen", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await addTrial(page, "survey-multi-choice", "slot-0");
     await setText(page, "trial-tag", "colour");
     await setText(page, "value-questions-0-options-0", "red");
@@ -457,8 +443,8 @@ describe("a multiple-choice question", () => {
   }, 180_000);
 
   it("keeps its question when it becomes a checkbox question", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await addTrial(page, "survey-multi-choice", "slot-0");
     await setText(page, "value-questions-0-prompt", "Which colours?");
     await page.getByTestId("trial-plugin").selectOption("survey-multi-select");
@@ -474,8 +460,8 @@ describe("a multiple-choice question", () => {
 
 describe("a slider step", () => {
   it("takes a list of videos, offers only video files for it, and shows its slider", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
 
     await openTab(page, "files");
     await page
@@ -519,8 +505,8 @@ describe("a slider step", () => {
   }, 180_000);
 
   it("leaves a width with no default blank, and a cleared number unset", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await addTrial(page, "html-slider-response", "slot-0");
     await showAllParameters(page);
 
@@ -541,8 +527,8 @@ describe("a slider step", () => {
 
 describe("a step that scores itself", () => {
   it("arrives ready to run and says it needs no scoring rule", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await addTrial(page, "categorize-html", "slot-0");
 
     expect(await page.getByTestId("scores-itself").count()).toBe(1);
@@ -552,8 +538,8 @@ describe("a step that scores itself", () => {
   }, 180_000);
 
   it("drops the scoring rule a step had when it becomes one that scores itself", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await page.getByTestId("example-flanker").click();
     const practice = async () => {
       const loop = stepOfKind((await authoredSpec(page)).timeline[1], "loop");
@@ -574,8 +560,8 @@ describe("a step that scores itself", () => {
 
 describe("a setting jsPsych leaves empty", () => {
   it("starts empty rather than as an empty file name", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await addTrial(page, "sketchpad", "slot-0");
     await showAllParameters(page);
     await page.getByTestId("mode-background_image").selectOption("fixed");
@@ -589,8 +575,8 @@ describe("a setting jsPsych leaves empty", () => {
 
 describe("a browser check that turns people away", () => {
   it("is asked where to send them, and drops that if it becomes another step", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     const spec = {
       name: "screening",
       recruitment: { endings: { screened_out: { message: "<p>Sorry.</p>" } } },
@@ -630,7 +616,7 @@ describe("settings worth checking", () => {
   };
 
   async function openDrawing(page: Page) {
-    await page.goto(appUrl);
+    await page.goto(app.url);
     await page.getByTestId("header-menu").click();
     await page.getByTestId("import-spec").setInputFiles({
       name: "drawing.json",
@@ -646,7 +632,7 @@ describe("settings worth checking", () => {
       .evaluate((element) => getComputedStyle(element).color);
 
   it("are shown apart from errors, and leave the experiment to run", async () => {
-    const page = await browser.newPage();
+    const page = await app.browser.newPage();
     await openDrawing(page);
 
     await expect
@@ -666,7 +652,7 @@ describe("settings worth checking", () => {
 
   it("are marked in the caution colour, in light and in dark", async () => {
     for (const scheme of ["light", "dark"] as const) {
-      const page = await browser.newPage({ colorScheme: scheme });
+      const page = await app.browser.newPage({ colorScheme: scheme });
       await openDrawing(page);
       await page.getByTestId("node-1").click();
       const caution = brandColour("caution", scheme);
@@ -680,7 +666,7 @@ describe("settings worth checking", () => {
   }, 120_000);
 
   it("include that a browser check in the preview finds no camera or microphone", async () => {
-    const page = await browser.newPage();
+    const page = await app.browser.newPage();
     await openDrawing(page);
     expect(await page.getByTestId("device-check-note").innerText()).toContain(
       "records both as missing",
@@ -694,8 +680,8 @@ describe("settings worth checking", () => {
 
 describe("a grid of squares", () => {
   it("is edited as a grid, and has to keep a key for every square", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await addTrial(page, "serial-reaction-time", "slot-0");
     await showAllParameters(page);
     await page.getByTestId("mode-grid").selectOption("fixed");
@@ -720,8 +706,8 @@ describe("a grid of squares", () => {
 
 describe("a canvas step", () => {
   it("offers each shape its own fields and draws it in the preview", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await addTrial(page, "psychophysics", "slot-0");
 
     expect(await page.getByTestId("value-stimuli-0-obj_type").inputValue()).toBe("cross");
@@ -750,8 +736,8 @@ describe("a canvas step", () => {
   }, 180_000);
 
   it("places objects by dragging them on the stage", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await addTrial(page, "psychophysics", "slot-0");
 
     // Objects are measured from the centre unless they say otherwise, and the form says so too.
@@ -825,8 +811,8 @@ describe("a canvas step", () => {
 
 describe("splitting participants between groups", () => {
   it("builds two groups and runs exactly one of them", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
 
     await addStep(page, "slot-0", "assign");
     await setText(page, "group-name-0", "wide");
@@ -862,8 +848,8 @@ describe("splitting participants between groups", () => {
 
 describe("counterbalancing the order of tasks", () => {
   it("builds two tasks and runs both, one after the other", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
 
     await addStep(page, "slot-0", "counterbalance");
     await setText(page, "task-name-0", "flanker");
@@ -909,8 +895,8 @@ describe("counterbalancing the order of tasks", () => {
 
 describe("routing on performance", () => {
   it("builds a branch with a step on each path", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
 
     await addTrial(page, "html-keyboard-response", "slot-0");
     await setText(page, "trial-tag", "screening");
@@ -944,8 +930,8 @@ describe("routing on performance", () => {
   }, 180_000);
 
   it("builds a branch on what the participant answered", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
 
     await addTrial(page, "html-keyboard-response", "slot-0");
     await setText(page, "trial-tag", "consent");
@@ -982,8 +968,8 @@ describe("routing on performance", () => {
 
 describe("ending the study early", () => {
   it("ends a declined consent with the ending's message, in the preview too", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
 
     await addTrial(page, "html-keyboard-response", "slot-0");
     await setText(page, "trial-tag", "consent");
@@ -1033,8 +1019,8 @@ describe("ending the study early", () => {
 
 describe("opening an example", () => {
   it("fills the timeline and runs it straight away", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
 
     await page.getByTestId("example-stroop").click();
 
@@ -1054,8 +1040,8 @@ describe("opening an example", () => {
 
 describe("working with what is already there", () => {
   it("opens a conditions table, edits a cell, and starts over", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await page.getByTestId("example-flanker").click();
 
     await openTab(page, "conditions");
@@ -1083,8 +1069,8 @@ describe("working with what is already there", () => {
   }, 120_000);
 
   it("carries experiment-wide settings into the generated code", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await page.getByTestId("example-flanker").click();
 
     await openTab(page, "study");
@@ -1105,8 +1091,8 @@ describe("working with what is already there", () => {
 
 describe("writing stimulus text", () => {
   it("formats without typing HTML, and still lets you edit the markup", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await addTrial(page, "html-keyboard-response", "slot-0");
     await page.getByTestId("mode-stimulus").selectOption("fixed");
 
@@ -1145,8 +1131,8 @@ describe("writing stimulus text", () => {
   }, 180_000);
 
   it("colours text even though the picker takes the focus away", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await addTrial(page, "html-keyboard-response", "slot-0");
     await page.getByTestId("mode-stimulus").selectOption("fixed");
 
@@ -1171,8 +1157,8 @@ describe("writing stimulus text", () => {
   }, 120_000);
 
   it("writes text against the backdrop the participant will see", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await addTrial(page, "html-keyboard-response", "slot-0");
     await page.getByTestId("mode-stimulus").selectOption("fixed");
 
@@ -1204,8 +1190,8 @@ describe("writing stimulus text", () => {
   }, 120_000);
 
   it("gives the field room to show more than a line or two", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await addTrial(page, "html-keyboard-response", "slot-0");
     await page.getByTestId("mode-stimulus").selectOption("fixed");
 
@@ -1220,8 +1206,8 @@ describe("writing stimulus text", () => {
 
 describe("finding things in the sidebar", () => {
   it("keeps each group of settings on its own tab", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await page.getByTestId("example-flanker").click();
 
     // A long timeline no longer pushes everything else out of sight.
@@ -1242,8 +1228,8 @@ describe("finding things in the sidebar", () => {
   }, 120_000);
 
   it("marks the study tab while results are going nowhere", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
 
     // An empty project has nothing to lose, so there is nothing to warn about.
     expect(await page.getByTestId("tab-study").innerText()).not.toContain("•");
@@ -1268,8 +1254,8 @@ describe("finding things in the sidebar", () => {
 
 describe("building a conditions table from a design", () => {
   it("crosses factors into rows without anyone writing a table", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await openTab(page, "conditions");
 
     await setText(page, "factor-table-name", "stroop_trials");
@@ -1301,8 +1287,8 @@ describe("building a conditions table from a design", () => {
   }, 120_000);
 
   it("explains what is missing rather than building an empty table", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await openTab(page, "conditions");
 
     await setText(page, "factor-name-0", "word");
@@ -1320,8 +1306,8 @@ describe("building a conditions table from a design", () => {
 
 describe("deciding where a step goes", () => {
   it("puts the next step at the chosen gap, not beside whatever is selected", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
 
     await addTrial(page, "html-keyboard-response", "slot-0");
     await setFixed(page, "stimulus", "<p>first</p>");
@@ -1344,8 +1330,8 @@ describe("deciding where a step goes", () => {
   }, 120_000);
 
   it("adds steps that are ready to run, and containers that already hold one", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
 
     await addStep(page, "slot-0", "trial");
     // Nothing is half-built: a new step has text in it and the preview runs. The preview rebuilds
@@ -1366,8 +1352,8 @@ describe("deciding where a step goes", () => {
   }, 120_000);
 
   it("says what each step does rather than what it is", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await page.getByTestId("example-flanker").click();
 
     expect(await page.getByTestId("node-1").innerText()).toContain("repeat while accuracy under");
@@ -1380,8 +1366,8 @@ describe("deciding where a step goes", () => {
 
 describe("a step that is not ready says so itself", () => {
   it("marks the step rather than only shouting in the preview", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
 
     await addTrial(page, "html-keyboard-response", "slot-0");
     expect(await page.getByTestId("issue-0").count()).toBe(0);
@@ -1399,8 +1385,8 @@ describe("a step that is not ready says so itself", () => {
   }, 120_000);
 
   it("offers the kinds of step at the gap, and says why one is unavailable", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
 
     await page.getByTestId("slot-0").click();
     const menu = page.getByTestId("slot-0-menu");
@@ -1421,8 +1407,8 @@ describe("a step that is not ready says so itself", () => {
 
 describe("seeing one step without clicking through the rest", () => {
   it("runs the selected step, in the block it belongs to", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await page.getByTestId("example-stroop").click();
 
     const preview = page.frameLocator('[data-testid="preview"]');
@@ -1450,8 +1436,8 @@ describe("seeing one step without clicking through the rest", () => {
   }, 180_000);
 
   it("never uploads from a preview, however the experiment saves data", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await page.getByTestId("example-flanker").click();
 
     await openTab(page, "study");
@@ -1474,8 +1460,8 @@ describe("seeing one step without clicking through the rest", () => {
 
 describe("saying who made the experiment", () => {
   it("records authors and hands them to the data description", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await page.getByTestId("example-flanker").click();
     await openTab(page, "study");
 
@@ -1493,8 +1479,8 @@ describe("saying who made the experiment", () => {
   }, 120_000);
 
   it("leaves authors out entirely when nobody is named", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await page.getByTestId("example-flanker").click();
     await openTab(page, "study");
 
