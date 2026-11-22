@@ -205,3 +205,55 @@ describe("the header logo", () => {
     }
   });
 });
+
+describe("the timeline's tree guides", () => {
+  /** The trunk and tick a row draws to show what it sits inside. */
+  function guides(page: Page, testId: string) {
+    return page.evaluate((id) => {
+      const row = document.querySelector(`[data-testid="${id}"]`);
+      const item = row?.closest("li");
+      if (!item) return null;
+      const trunk = getComputedStyle(item, "::before");
+      const tick = getComputedStyle(item, "::after");
+      return {
+        nested: item.parentElement?.classList.contains("nested") ?? false,
+        trunk: parseFloat(trunk.borderLeftWidth) ? parseFloat(trunk.height) : 0,
+        tick: parseFloat(tick.borderTopWidth) ? parseFloat(tick.width) : 0,
+      };
+    }, testId);
+  }
+
+  it("draws a trunk and a tick for a nested step, and none for a top-level one", async () => {
+    const page = await app.browser.newPage({ viewport: { width: 1500, height: 900 } });
+    await page.goto(app.url);
+    await page.getByTestId("example-stroop").click();
+
+    // Depth used to be indentation alone, which is why this is asserted rather than left to eye.
+    const nested = await guides(page, "node-2-0");
+    expect(nested?.nested).toBe(true);
+    expect(nested?.tick).toBeGreaterThan(0);
+    expect(nested?.trunk).toBeGreaterThan(0);
+
+    const top = await guides(page, "node-0");
+    expect(top?.nested).toBe(false);
+    expect(top?.tick).toBe(0);
+
+    await page.close();
+  });
+
+  it("stops the trunk at the last step, so a branch closes instead of running on", async () => {
+    const page = await app.browser.newPage({ viewport: { width: 1500, height: 900 } });
+    await page.goto(app.url);
+    await page.getByTestId("example-stroop").click();
+
+    const rows = await page.locator('[data-testid^="node-2-"]').count();
+    const first = await guides(page, "node-2-0");
+    const last = await guides(page, `node-2-${rows - 1}`);
+
+    // The last row's trunk reaches its own tick and no further; its siblings carry on to the next.
+    expect(last!.trunk).toBeLessThan(first!.trunk);
+    expect(last!.tick).toBe(first!.tick);
+
+    await page.close();
+  });
+});
