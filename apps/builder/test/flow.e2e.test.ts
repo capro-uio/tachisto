@@ -1,14 +1,12 @@
 import { readFileSync } from "node:fs";
-import { chromium, type Browser, type Page } from "playwright";
-import { build, preview, type PreviewServer } from "vite";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { type Page } from "playwright";
+import { describe, expect, it } from "vitest";
+import { runningApp } from "./app.ts";
 
-let browser: Browser;
-let server: PreviewServer;
-let appUrl: string;
+const app = runningApp();
 
 async function openFlow(page: Page, example: string) {
-  await page.goto(appUrl);
+  await page.goto(app.url);
   await page.getByTestId(`example-${example}`).click();
   await page.getByTestId("view-flow").click();
   await page.getByTestId("flow-diagram").waitFor();
@@ -49,21 +47,9 @@ function textContrasts(page: Page, testId: string) {
   });
 }
 
-beforeAll(async () => {
-  await build({ logLevel: "warn" });
-  server = await preview({ preview: { port: 0 }, logLevel: "warn" });
-  appUrl = server.resolvedUrls!.local[0];
-  browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL ?? "chrome" });
-}, 180_000);
-
-afterAll(async () => {
-  await browser?.close();
-  await server?.close();
-});
-
 describe("the flow diagram", () => {
   it("draws an example's steps, its loop and the block inside it", async () => {
-    const page = await browser.newPage();
+    const page = await app.browser.newPage();
     await openFlow(page, "flanker");
 
     const diagram = page.getByTestId("flow-diagram");
@@ -91,7 +77,7 @@ describe("the flow diagram", () => {
   }, 120_000);
 
   it("downloads the diagram as an SVG figure named after the study", async () => {
-    const page = await browser.newPage();
+    const page = await app.browser.newPage();
     await openFlow(page, "flanker");
 
     const [file] = await Promise.all([
@@ -106,7 +92,7 @@ describe("the flow diagram", () => {
   }, 120_000);
 
   it("selects a step in the timeline when it is clicked or chosen from the keyboard", async () => {
-    const page = await browser.newPage();
+    const page = await app.browser.newPage();
     await openFlow(page, "flanker");
 
     await page.getByTestId("flow-node-1-0-1").click();
@@ -121,7 +107,7 @@ describe("the flow diagram", () => {
   }, 120_000);
 
   it("follows the timeline as steps are added, showing a branch's two paths", async () => {
-    const page = await browser.newPage();
+    const page = await app.browser.newPage();
     await openFlow(page, "stroop");
     expect(await page.getByTestId("flow-node-1").getAttribute("aria-label")).toBe(
       "checkpoint, reached “instructions-read”",
@@ -144,7 +130,7 @@ describe("the flow diagram", () => {
 
   it("keeps its text readable in light and dark", async () => {
     for (const scheme of ["light", "dark"] as const) {
-      const page = await browser.newPage({ colorScheme: scheme });
+      const page = await app.browser.newPage({ colorScheme: scheme });
       await openFlow(page, "stroop");
       await page.getByTestId("slot-3").click();
       await page.getByTestId("slot-3-assign").click();

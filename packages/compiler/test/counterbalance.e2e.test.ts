@@ -1,21 +1,18 @@
 import { rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { chromium, type Browser } from "playwright";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
+import { servedWorkspace } from "./served.ts";
 import { compileSpec } from "../src/compile.ts";
 import { latinSquareOrders } from "../src/counterbalance.ts";
 import { emitHtml } from "../src/targets/html.ts";
 import type { CounterbalanceNode, Spec, SpecNode } from "../src/types.ts";
-import { serveDirectory, type StaticServer } from "./server.ts";
 import { schemas } from "./schemas.ts";
 
+const served = servedWorkspace();
 const PAGE_NAME = "counterbalance.e2e.html";
 const workspaceRoot = fileURLToPath(new URL("../../../", import.meta.url));
 const TASKS = ["alpha", "beta", "gamma"];
-
-let browser: Browser;
-let server: StaticServer;
 
 const screen = (task: string, text: string): SpecNode => ({
   kind: "trial",
@@ -48,7 +45,7 @@ const study = (method: CounterbalanceNode["method"]): Spec => ({
   name: "task-order",
   data:
     method === "latin_square"
-      ? { save: "post", experiment_id: "testExperiment", endpoint: server.url }
+      ? { save: "post", experiment_id: "testExperiment", endpoint: served.server.url }
       : undefined,
   conditions: { words: [{ word: "RED" }, { word: "BLUE" }] },
   timeline: [
@@ -75,10 +72,10 @@ async function run(spec: Spec, screens = TASKS.length + 1) {
   );
   writeFileSync(join(workspaceRoot, PAGE_NAME), html);
 
-  const page = await browser.newPage();
+  const page = await served.browser.newPage();
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto(`${server.url}/${PAGE_NAME}`);
+  await page.goto(`${served.server.url}/${PAGE_NAME}`);
 
   const shown: string[] = [];
   for (let count = 0; count < screens; count += 1) {
@@ -109,14 +106,7 @@ async function run(spec: Spec, screens = TASKS.length + 1) {
   return { shown, rows, visited, tasksRun, errors };
 }
 
-beforeAll(async () => {
-  server = await serveDirectory(workspaceRoot);
-  browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL ?? "chrome" });
-}, 120_000);
-
-afterAll(async () => {
-  await browser?.close();
-  await server?.close();
+afterAll(() => {
   rmSync(join(workspaceRoot, PAGE_NAME), { force: true });
 });
 
@@ -137,7 +127,7 @@ describe("a study that counterbalances the order of its tasks", () => {
   it("takes the row of the Latin square the data service hands out", async () => {
     const square = latinSquareOrders(TASKS);
     for (const condition of [4, 1]) {
-      server.nextCondition = condition;
+      served.server.nextCondition = condition;
       const { visited, rows, errors } = await run(study("latin_square"));
       expect(errors).toEqual([]);
       expect(visited).toEqual(square[condition]);
@@ -146,21 +136,21 @@ describe("a study that counterbalances the order of its tasks", () => {
   }, 120_000);
 
   it("keeps a participant's order, and their place in the count, when the step runs again", async () => {
-    server.nextCondition = 2;
-    const before = server.conditionRequests;
+    served.server.nextCondition = 2;
+    const before = served.server.conditionRequests;
     const { visited, rows, errors } = await run(
       repeated(study("latin_square")),
       2 * (TASKS.length + 1),
     );
     const order = latinSquareOrders(TASKS)[2];
     expect(errors).toEqual([]);
-    expect(server.conditionRequests - before).toBe(1);
+    expect(served.server.conditionRequests - before).toBe(1);
     expect(visited).toEqual([...order, ...order]);
     expect(new Set(rows.map((row) => row.order))).toEqual(new Set([order.join(" > ")]));
   }, 120_000);
 
   it("still runs a row of the square when the data service fails, if the study opts in", async () => {
-    server.failConditions = true;
+    served.server.failConditions = true;
     try {
       const spec = study("latin_square");
       const { visited, errors } = await run({
@@ -170,7 +160,7 @@ describe("a study that counterbalances the order of its tasks", () => {
       expect(errors).toEqual([]);
       expect(latinSquareOrders(TASKS)).toContainEqual(visited);
     } finally {
-      server.failConditions = false;
+      served.server.failConditions = false;
     }
   }, 120_000);
 });

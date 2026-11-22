@@ -1,11 +1,8 @@
-import { type Browser, type Page } from "playwright";
-import { build, preview, type PreviewServer } from "vite";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { launchBrowser } from "./browser.ts";
+import { type Page } from "playwright";
+import { describe, expect, it } from "vitest";
+import { runningApp } from "./app.ts";
 
-let browser: Browser;
-let server: PreviewServer;
-let appUrl: string;
+const app = runningApp();
 
 const SPEC_URL = "https://osf.example/study.json";
 
@@ -58,22 +55,10 @@ async function openFromAddress(page: Page) {
   await expect.poll(() => page.getByTestId("experiment-name").inputValue()).toBe("sent-study");
 }
 
-beforeAll(async () => {
-  await build({ logLevel: "warn" });
-  server = await preview({ preview: { port: 0 }, logLevel: "warn" });
-  appUrl = server.resolvedUrls!.local[0];
-  browser = await launchBrowser();
-}, 180_000);
-
-afterAll(async () => {
-  await browser?.close();
-  await server?.close();
-});
-
 describe("opening a spec someone sent", () => {
   it("opens one pasted as JSON", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await page.getByTestId("paste-spec-start").click();
     await page.getByTestId("open-spec-text").fill(JSON.stringify(sent));
     await page.getByTestId("open-spec-confirm").click();
@@ -84,8 +69,8 @@ describe("opening a spec someone sent", () => {
   }, 120_000);
 
   it("says what is wrong with something that is not a spec, and keeps what was open", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await page.getByTestId("example-flanker").click();
     await expect
       .poll(() => page.getByTestId("experiment-name").inputValue())
@@ -103,8 +88,8 @@ describe("opening a spec someone sent", () => {
 
   // A modal dialog, so Escape closes it and tabbing cannot wander off behind it.
   it("closes on Escape, leaving what was open alone", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await page.getByTestId("paste-spec-start").click();
     await page.getByTestId("open-spec-text").fill(JSON.stringify(sent));
     await page.keyboard.press("Escape");
@@ -115,9 +100,9 @@ describe("opening a spec someone sent", () => {
   }, 120_000);
 
   it("loads nothing when the dialog is cancelled while it is fetching", async () => {
-    const page = await browser.newPage();
+    const page = await app.browser.newPage();
     const fetch = await heldSpec(page);
-    await page.goto(appUrl);
+    await page.goto(app.url);
     await page.getByTestId("paste-spec-start").click();
     await page.getByTestId("open-spec-text").fill(SPEC_URL);
     await page.getByTestId("open-spec-confirm").click();
@@ -132,9 +117,9 @@ describe("opening a spec someone sent", () => {
   }, 120_000);
 
   it("fetches one pasted as an address", async () => {
-    const page = await browser.newPage();
+    const page = await app.browser.newPage();
     await serveSpec(page, JSON.stringify(sent));
-    await page.goto(appUrl);
+    await page.goto(app.url);
     await page.getByTestId("paste-spec-start").click();
     await page.getByTestId("open-spec-text").fill(SPEC_URL);
     await page.getByTestId("open-spec-confirm").click();
@@ -149,10 +134,10 @@ describe("passing on a link to the spec that is open", () => {
     page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
 
   it("offers a link once a spec came from an address, and copies it", async () => {
-    const page = await browser.newPage();
+    const page = await app.browser.newPage();
     await grantClipboard(page);
     await serveSpec(page, JSON.stringify(sent));
-    await page.goto(appUrl);
+    await page.goto(app.url);
     await openFromAddress(page);
 
     await page.getByTestId("header-menu").click();
@@ -163,9 +148,9 @@ describe("passing on a link to the spec that is open", () => {
   }, 120_000);
 
   it("offers no link for a spec that came from nowhere, and stops offering one that is gone", async () => {
-    const page = await browser.newPage();
+    const page = await app.browser.newPage();
     await serveSpec(page, JSON.stringify(sent));
-    await page.goto(appUrl);
+    await page.goto(app.url);
     await page.getByTestId("header-menu").click();
     expect(await page.getByTestId("copy-spec-link").count()).toBe(0);
     await page.keyboard.press("Escape");
@@ -185,14 +170,14 @@ describe("passing on a link to the spec that is open", () => {
   }, 120_000);
 
   it("hands over the link itself when the clipboard refuses", async () => {
-    const page = await browser.newPage();
+    const page = await app.browser.newPage();
     await serveSpec(page, JSON.stringify(sent));
     await page.addInitScript(() => {
       Object.defineProperty(navigator, "clipboard", {
         value: { writeText: () => Promise.reject(new Error("denied")) },
       });
     });
-    await page.goto(appUrl);
+    await page.goto(app.url);
     await openFromAddress(page);
 
     await page.getByTestId("header-menu").click();
@@ -209,7 +194,7 @@ describe("a link that carries a spec", () => {
 
   // Nothing is fetched until someone says so: a spec runs code for every participant.
   it("asks before opening, naming where it comes from", async () => {
-    const page = await browser.newPage();
+    const page = await app.browser.newPage();
     let asked = 0;
     await page.route(SPEC_URL, (route) => {
       asked += 1;
@@ -219,7 +204,7 @@ describe("a link that carries a spec", () => {
         body: JSON.stringify(sent),
       });
     });
-    await page.goto(linked(appUrl));
+    await page.goto(linked(app.url));
 
     await expect.poll(() => page.getByTestId("invitation").textContent()).toContain("osf.example");
     expect(asked).toBe(0);
@@ -231,13 +216,13 @@ describe("a link that carries a spec", () => {
   }, 120_000);
 
   it("opens nothing when the invitation is declined", async () => {
-    const page = await browser.newPage();
+    const page = await app.browser.newPage();
     let asked = 0;
     await page.route(SPEC_URL, (route) => {
       asked += 1;
       return route.abort();
     });
-    await page.goto(linked(appUrl));
+    await page.goto(linked(app.url));
     await page.getByTestId("invitation-decline").click();
 
     expect(await page.getByTestId("invitation").count()).toBe(0);
@@ -248,9 +233,9 @@ describe("a link that carries a spec", () => {
 
   // The asking is the whole point of the flow, so it has to hold even once "Open it" is clicked.
   it("opens nothing when the invitation is declined while it is being fetched", async () => {
-    const page = await browser.newPage();
+    const page = await app.browser.newPage();
     const fetch = await heldSpec(page);
-    await page.goto(linked(appUrl));
+    await page.goto(linked(app.url));
     await page.getByTestId("invitation-accept").click();
     await page.getByTestId("invitation-decline").click();
     // Waiting for the answer to arrive is the point: without it this passes whether or not the
@@ -263,9 +248,9 @@ describe("a link that carries a spec", () => {
   }, 120_000);
 
   it("keeps the invitation when the spec cannot be reached, so it can be tried again", async () => {
-    const page = await browser.newPage();
+    const page = await app.browser.newPage();
     await serveSpec(page, "", 500);
-    await page.goto(linked(appUrl));
+    await page.goto(linked(app.url));
     await page.getByTestId("invitation-accept").click();
     await expect
       .poll(() => page.getByTestId("import-error").textContent())
@@ -275,8 +260,8 @@ describe("a link that carries a spec", () => {
   }, 120_000);
 
   it("refuses a link that does not point at https", async () => {
-    const page = await browser.newPage();
-    await page.goto(linked(appUrl, "http://osf.example/study.json"));
+    const page = await app.browser.newPage();
+    await page.goto(linked(app.url, "http://osf.example/study.json"));
     await expect
       .poll(() => page.getByTestId("import-error").textContent())
       .toContain("http: addresses are not opened");

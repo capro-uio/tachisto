@@ -1,14 +1,14 @@
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { chromium, type Browser } from "playwright";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { servedWorkspace } from "./served.ts";
 import { compileSpec } from "../src/compile.ts";
 import { emitHtml } from "../src/targets/html.ts";
 import type { Asset, Spec } from "../src/types.ts";
-import { serveDirectory, type StaticServer } from "./server.ts";
 import { schemas } from "./schemas.ts";
 
+const served = servedWorkspace({ args: ["--autoplay-policy=no-user-gesture-required"] });
 const PAGE_NAME = "media.e2e.html";
 const workspaceRoot = fileURLToPath(new URL("../../../", import.meta.url));
 
@@ -33,32 +33,22 @@ const spec: Spec = {
   ],
 };
 
-let browser: Browser;
-let server: StaticServer;
-
 beforeAll(async () => {
   const { html } = await emitHtml(compileSpec(spec, schemas), {
     title: spec.name,
     base: "/node_modules",
   });
   writeFileSync(join(workspaceRoot, PAGE_NAME), html);
-  server = await serveDirectory(workspaceRoot);
-  browser = await chromium.launch({
-    channel: process.env.PLAYWRIGHT_CHANNEL ?? "chrome",
-    args: ["--autoplay-policy=no-user-gesture-required"],
-  });
 }, 120_000);
 
-afterAll(async () => {
-  await browser?.close();
-  await server?.close();
+afterAll(() => {
   rmSync(join(workspaceRoot, PAGE_NAME), { force: true });
 });
 
 describe("a study with image, audio and video files", () => {
   it("loads every file and reaches the trial that plays the sound", async () => {
-    const page = await browser.newPage();
-    await page.goto(`${server.url}/${PAGE_NAME}`);
+    const page = await served.browser.newPage();
+    await page.goto(`${served.server.url}/${PAGE_NAME}`);
 
     await page.locator("#jspsych-content").getByText("listening").waitFor({ timeout: 15_000 });
     // The generated script declares jsPsych as a constant; window.jsPsych is jsPsych's own
@@ -76,8 +66,8 @@ describe("a study with image, audio and video files", () => {
 
   // An embedded file is shown from its data URL, which a plugin would otherwise record in full.
   it("records the file a trial played by its name, not by its contents", async () => {
-    const page = await browser.newPage();
-    await page.goto(`${server.url}/${PAGE_NAME}`);
+    const page = await served.browser.newPage();
+    await page.goto(`${served.server.url}/${PAGE_NAME}`);
     await page.locator("#jspsych-content").getByText("listening").waitFor({ timeout: 15_000 });
     await page.keyboard.press("a");
 

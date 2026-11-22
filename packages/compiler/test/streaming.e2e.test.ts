@@ -1,28 +1,31 @@
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { chromium, type Browser, type Download } from "playwright";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { type Download } from "playwright";
+import { afterAll, afterEach, describe, expect, it } from "vitest";
+import { servedWorkspace } from "./served.ts";
 import { compileSpec } from "../src/compile.ts";
 import { packageFileKey } from "../src/package-files.ts";
 import { emitHtml } from "../src/targets/html.ts";
 import type { CompileResult, Spec } from "../src/types.ts";
-import { serveDirectory, type StaticServer } from "./server.ts";
 import { recordsOf } from "./csv.ts";
 import { schemas } from "./schemas.ts";
 
+const served = servedWorkspace();
 const PAGE_NAME = "streaming.e2e.html";
 const workspaceRoot = fileURLToPath(new URL("../../../", import.meta.url));
 const PLATFORM = "https://platform.example";
 const PIPE_BUNDLE = "@jspsych/extension-pipe/dist/index.browser.min.js";
 
-let browser: Browser;
-let server: StaticServer;
-
 // Pressing n ends the study early at the "declined" ending; any other key goes on to the end.
 const spec = (recruitment?: Spec["recruitment"]): Spec => ({
   name: "streaming",
-  data: { save: "post", experiment_id: "testExperiment", endpoint: server.url, stream: true },
+  data: {
+    save: "post",
+    experiment_id: "testExperiment",
+    endpoint: served.server.url,
+    stream: true,
+  },
   recruitment: {
     ...recruitment,
     endings: {
@@ -52,11 +55,11 @@ async function runExperiment(key: string, recruitment?: Spec["recruitment"]) {
   });
   writeFileSync(join(workspaceRoot, PAGE_NAME), html);
 
-  const page = await browser.newPage({ acceptDownloads: true });
+  const page = await served.browser.newPage({ acceptDownloads: true });
   const downloads: Download[] = [];
   page.on("download", (download) => downloads.push(download));
   await page.route(`${PLATFORM}/**`, (route) => route.fulfill({ body: "back on the platform" }));
-  await page.goto(`${server.url}/${PAGE_NAME}?participant_id=p42`);
+  await page.goto(`${served.server.url}/${PAGE_NAME}?participant_id=p42`);
   await page.locator("#jspsych-content").getByText("press y").waitFor();
   await page.keyboard.press(key);
   return { page, downloads };
@@ -65,20 +68,13 @@ async function runExperiment(key: string, recruitment?: Spec["recruitment"]) {
 const shown = (page: Awaited<ReturnType<typeof runExperiment>>["page"]) =>
   page.locator("body").innerText();
 
-beforeAll(async () => {
-  server = await serveDirectory(workspaceRoot);
-  browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL ?? "chrome" });
-}, 120_000);
-
 afterEach(() => {
-  server.uploads.length = 0;
-  server.sessions.length = 0;
-  server.failUploads = false;
+  served.server.uploads.length = 0;
+  served.server.sessions.length = 0;
+  served.server.failUploads = false;
 });
 
-afterAll(async () => {
-  await browser?.close();
-  await server?.close();
+afterAll(() => {
   rmSync(join(workspaceRoot, PAGE_NAME), { force: true });
 });
 
@@ -87,11 +83,11 @@ describe("a compiled experiment that saves its data as it goes", () => {
     const { page } = await runExperiment("y");
 
     await expect.poll(() => shown(page), { timeout: 15_000 }).toContain("Your data has been saved");
-    expect(server.sessions).toEqual([
+    expect(served.server.sessions).toEqual([
       { experimentID: "testExperiment", filename: "streaming_p42.csv" },
     ]);
-    expect(server.uploads).toHaveLength(1);
-    const [upload] = server.uploads;
+    expect(served.server.uploads).toHaveLength(1);
+    const [upload] = served.server.uploads;
     expect(upload).toMatchObject({
       experimentID: "testExperiment",
       filename: "streaming_p42.csv",
@@ -106,14 +102,14 @@ describe("a compiled experiment that saves its data as it goes", () => {
     const { page } = await runExperiment("n");
 
     await expect.poll(() => shown(page), { timeout: 15_000 }).toContain("Thank you anyway.");
-    expect(server.uploads).toHaveLength(1);
-    expect(server.uploads[0].data).toContain("declined");
+    expect(served.server.uploads).toHaveLength(1);
+    expect(served.server.uploads[0].data).toContain("declined");
     expect(await shown(page)).not.toContain("Saving your data");
     await page.close();
   }, 120_000);
 
   it("downloads the data and says so when the upload fails", async () => {
-    server.failUploads = true;
+    served.server.failUploads = true;
     const { page, downloads } = await runExperiment("n");
 
     await expect.poll(() => shown(page), { timeout: 15_000 }).toContain("could not be uploaded");
@@ -130,7 +126,7 @@ describe("a compiled experiment that saves its data as it goes", () => {
     });
 
     await page.waitForURL(`${PLATFORM}/complete?pid=p42`, { timeout: 15_000 });
-    expect(server.uploads).toHaveLength(1);
+    expect(served.server.uploads).toHaveLength(1);
     await page.close();
   }, 120_000);
 });
@@ -152,13 +148,13 @@ describe("a single-file experiment that saves its data as it goes", () => {
     });
     expect(html).not.toMatch(/<script[^>]*\ssrc="(?!data:)|<link /);
     writeFileSync(join(workspaceRoot, PAGE_NAME), html);
-    const page = await browser.newPage();
+    const page = await served.browser.newPage();
     const errors: string[] = [];
     page.on("pageerror", (error) => errors.push(error.message));
     page.on("console", (message) => {
       if (message.type() === "error") errors.push(message.text());
     });
-    await page.goto(`${server.url}/${PAGE_NAME}?participant_id=p42`);
+    await page.goto(`${served.server.url}/${PAGE_NAME}?participant_id=p42`);
     return { page, errors };
   }
 
@@ -169,10 +165,10 @@ describe("a single-file experiment that saves its data as it goes", () => {
     await page.keyboard.press("y");
 
     await expect.poll(() => shown(page), { timeout: 15_000 }).toContain("Your data has been saved");
-    expect(server.sessions).toEqual([
+    expect(served.server.sessions).toEqual([
       { experimentID: "testExperiment", filename: "streaming_p42.csv" },
     ]);
-    expect(server.uploads).toHaveLength(1);
+    expect(served.server.uploads).toHaveLength(1);
     expect(errors.filter((error) => !error.includes("503"))).toEqual([]);
     await page.close();
   }, 120_000);

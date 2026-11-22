@@ -1,14 +1,15 @@
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { chromium, type Browser, type Page } from "playwright";
+import { type Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { servedWorkspace } from "./served.ts";
 import { compileSpec } from "../src/compile.ts";
 import { emitHtml } from "../src/targets/html.ts";
 import type { Asset, Spec, TrialNode } from "../src/types.ts";
-import { serveDirectory, type StaticServer } from "./server.ts";
 import { schemas } from "./schemas.ts";
 
+const served = servedWorkspace({ args: ["--autoplay-policy=no-user-gesture-required"] });
 const PAGE_NAME = "slider.e2e.html";
 const workspaceRoot = fileURLToPath(new URL("../../../", import.meta.url));
 
@@ -71,25 +72,15 @@ async function videoPlays(page: Page) {
     .toBeGreaterThanOrEqual(2);
 }
 
-let browser: Browser;
-let server: StaticServer;
-
 beforeAll(async () => {
   const { html } = await emitHtml(compileSpec(spec, schemas), {
     title: spec.name,
     base: "/node_modules",
   });
   writeFileSync(join(workspaceRoot, PAGE_NAME), html);
-  server = await serveDirectory(workspaceRoot);
-  browser = await chromium.launch({
-    channel: process.env.PLAYWRIGHT_CHANNEL ?? "chrome",
-    args: ["--autoplay-policy=no-user-gesture-required"],
-  });
 }, 120_000);
 
-afterAll(async () => {
-  await browser?.close();
-  await server?.close();
+afterAll(() => {
   rmSync(join(workspaceRoot, PAGE_NAME), { force: true });
 });
 
@@ -101,10 +92,10 @@ async function answer(page: Page, plugin: string, value: string) {
 
 describe("slider questions", () => {
   it("records where each slider was set, whatever it shows, and branches on it", async () => {
-    const page = await browser.newPage();
+    const page = await served.browser.newPage();
     const errors: string[] = [];
     page.on("pageerror", (error) => errors.push(error.message));
-    await page.goto(`${server.url}/${PAGE_NAME}`);
+    await page.goto(`${served.server.url}/${PAGE_NAME}`);
 
     await answer(page, "html-slider-response", "80");
     await expect.poll(() => page.locator("#path").innerText()).toBe("quite sure");
@@ -148,7 +139,7 @@ describe("a single-file experiment opened from disk", () => {
     const file = join(workspaceRoot, "slider-from-disk.e2e.html");
     writeFileSync(file, html);
     try {
-      const page = await browser.newPage();
+      const page = await served.browser.newPage();
       const errors: string[] = [];
       page.on("pageerror", (error) => errors.push(error.message));
       await page.goto(`file://${file}`);

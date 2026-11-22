@@ -49,6 +49,19 @@ The tag is checked, not trusted. It is refused unless:
 
 5. **Check Zenodo** has picked up the new release and minted its version DOI.
 
+## Why the workflow has two jobs
+
+`build` installs dependencies, builds the packages and writes the release notes. `publish` takes
+both as artifacts and installs nothing.
+
+They are apart on purpose. `npm ci` runs dependencies' install scripts, and an OIDC token is a
+job-scoped environment variable every child process inherits — so an install running third-party
+code in the job that can mint a publishing credential would let any `postinstall` publish under
+these names, with provenance saying it came from here. Trusted publishing leaves nothing stored to
+steal, which also means nothing to rotate afterwards. `npm publish --ignore-scripts` keeps
+`prepack` from rebuilding in a job that deliberately has no dependencies: what ships is what
+`build` made.
+
 ## Rules the workflow relies on
 
 - **A version is published once.** npm versions are immutable and Zenodo records are permanent. If a
@@ -65,13 +78,17 @@ The tag is checked, not trusted. It is refused unless:
   published package may not: a `*` there would ship a dependency on whatever the registry holds
   next, or on a package nobody can install.
 
-## Worth having, not yet in place
+## Who may cut a release
 
-Nothing stops a tag being pushed by anyone with write access, and `main` requires no review. The
-tag check above means such a tag has to point at a commit on `main`, but on a repository whose
-releases are permanent a **tag protection ruleset** on `refs/tags/v*`, restricted to admins, is
-worth adding in the repository settings. It is the one protection here that cannot be written into
-a workflow file, because a workflow cannot limit who may trigger it.
+A ruleset, **Release tags are cut by admins**, restricts `creation`, `update` and `deletion` on
+`refs/tags/v*` to the admin role. A workflow cannot limit who triggers it, so this is the one
+protection here that lives in the repository settings rather than in a file.
+
+`main` still requires no review, so the tag check above proves a release points at a commit that
+reached `main`, not that anyone read it. The strongest remaining option is a GitHub Environment
+with required reviewers on the `publish` job, named in each package's trusted-publisher config:
+npm's OIDC subject includes the environment, so a run outside it cannot mint a usable token even
+if `release.yml` itself is edited.
 
 ## Publishing a package for the first time
 
@@ -94,10 +111,25 @@ Actions and give it:
 - repository `capro-uio/tachisto`
 - workflow `release.yml`
 
+Tick **Allow `npm publish`** as well. A trusted publisher is only allowed `npm stage publish`
+otherwise, and the workflow publishes directly, so without it the run fails as though nothing were
+configured.
+
+Two things are worth knowing before doing this, because between them they cost three failed runs
+on `0.0.3`:
+
+- **The workflow filename cannot be changed afterwards.** The form accepts typing in it and the
+  save appears to work, but required fields are fixed once the connection exists. A typo such as
+  `releas.yml` means deleting the connection and creating a new one.
+- **A mismatch reads as `E404`, not as a permission error.** npm answers an unauthorised `PUT` with
+  `404 ... could not be found or you do not have permission`, so a wrong workflow name, a wrong
+  repository, or an environment named here but not declared in `release.yml` all look like the
+  package is missing. If `npm notice` never mentions OIDC or provenance before the error, npm found
+  no trusted publisher to use.
+
 From then on the release workflow publishes that package, and provenance is attached to it
-automatically. A package that has not been configured will fail the publish step with a permission
-error; the GitHub release is opened after publishing, so the tag can be retried once the setting is
-in place.
+automatically. The GitHub release is opened after publishing, so a tag can be retried once a
+setting is in place: the publish step skips the packages already out.
 
 The published packages are `tachisto-schemas`, `tachisto-compiler`, `tachisto` and
 `tachisto-mcp`. `tachisto-brand`, `tachisto-builder` and `tachisto-site` are private: they

@@ -1,27 +1,24 @@
 import { rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { chromium, type Browser } from "playwright";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it } from "vitest";
+import { servedWorkspace } from "./served.ts";
 import { compileSpec } from "../src/compile.ts";
 import { emitHtml } from "../src/targets/html.ts";
 import type { ParameterValue, Spec } from "../src/types.ts";
 import { recordsOf } from "./csv.ts";
-import { serveDirectory, type StaticServer } from "./server.ts";
 import { schemas } from "./schemas.ts";
 
+const served = servedWorkspace();
 const PAGE_NAME = "exclusion.e2e.html";
 const workspaceRoot = fileURLToPath(new URL("../../../", import.meta.url));
-
-let browser: Browser;
-let server: StaticServer;
 
 // The browser check would abort the study for a participant it turns away; named an ending, it
 // sends them there instead, saving their data first.
 function screening(check: Record<string, ParameterValue>): Spec {
   return {
     name: "screening",
-    data: { save: "post", experiment_id: "testExperiment", endpoint: server.url },
+    data: { save: "post", experiment_id: "testExperiment", endpoint: served.server.url },
     recruitment: {
       endings: { screened_out: { message: "<p>Sorry, this study needs a larger screen.</p>" } },
     },
@@ -48,25 +45,18 @@ async function run(spec: Spec) {
     base: "/node_modules",
   });
   writeFileSync(join(workspaceRoot, PAGE_NAME), html);
-  const page = await browser.newPage();
+  const page = await served.browser.newPage();
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto(`${server.url}/${PAGE_NAME}?participant_id=p1`);
+  await page.goto(`${served.server.url}/${PAGE_NAME}?participant_id=p1`);
   return { page, errors };
 }
 
-beforeAll(async () => {
-  server = await serveDirectory(workspaceRoot);
-  browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL ?? "chrome" });
-}, 120_000);
-
 afterEach(() => {
-  server.uploads.length = 0;
+  served.server.uploads.length = 0;
 });
 
-afterAll(async () => {
-  await browser?.close();
-  await server?.close();
+afterAll(() => {
   rmSync(join(workspaceRoot, PAGE_NAME), { force: true });
 });
 
@@ -79,8 +69,8 @@ describe("a participant the browser check turns away", () => {
       .poll(() => page.locator("body").innerText(), { timeout: 15_000 })
       .toContain("needs a larger screen");
     expect(await page.locator("body").innerText()).not.toContain("the task");
-    expect(server.uploads).toHaveLength(1);
-    const rows = recordsOf(server.uploads[0].data);
+    expect(served.server.uploads).toHaveLength(1);
+    const rows = recordsOf(served.server.uploads[0].data);
     expect(rows.find((row) => row.tag === "check")?.excluded).toBe("true");
     expect(rows.some((row) => row.ending === "screened_out")).toBe(true);
     expect(errors).toEqual([]);
@@ -94,7 +84,7 @@ describe("a participant the browser check turns away", () => {
     await expect
       .poll(() => page.locator("body").innerText(), { timeout: 15_000 })
       .toContain("needs a larger screen");
-    expect(server.uploads).toHaveLength(1);
+    expect(served.server.uploads).toHaveLength(1);
     await page.close();
   });
 

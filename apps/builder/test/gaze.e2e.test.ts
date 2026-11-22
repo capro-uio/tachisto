@@ -1,28 +1,13 @@
-import { chromium, type Browser } from "playwright";
-import { build, preview, type PreviewServer } from "vite";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
+import { runningApp } from "./app.ts";
 import { addStep, addTrial } from "./steps.ts";
 
-let browser: Browser;
-let server: PreviewServer;
-let appUrl: string;
-
-beforeAll(async () => {
-  await build({ logLevel: "warn" });
-  server = await preview({ preview: { port: 0 }, logLevel: "warn" });
-  appUrl = server.resolvedUrls!.local[0];
-  browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL ?? "chrome" });
-}, 180_000);
-
-afterAll(async () => {
-  await browser?.close();
-  await server?.close();
-});
+const app = runningApp();
 
 describe("eye tracking in the builder", () => {
   it("offers to track gaze once the study calibrates, and records the stimulus by default", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await addStep(page, "slot-0", "trial");
     expect(await page.getByTestId("track-gaze").count()).toBe(0);
 
@@ -45,8 +30,8 @@ describe("eye tracking in the builder", () => {
   }, 120_000);
 
   it("edits calibration points as two numbers each", async () => {
-    const page = await browser.newPage();
-    await page.goto(appUrl);
+    const page = await app.browser.newPage();
+    await page.goto(app.url);
     await addTrial(page, "webgazer-calibrate", "slot-0");
     await page.getByTestId("toggle-parameters").click();
     await page.getByTestId("mode-calibration_points").selectOption("fixed");

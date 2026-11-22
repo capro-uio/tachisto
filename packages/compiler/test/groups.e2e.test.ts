@@ -1,19 +1,16 @@
 import { rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { chromium, type Browser } from "playwright";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
+import { servedWorkspace } from "./served.ts";
 import { compileSpec } from "../src/compile.ts";
 import { emitHtml } from "../src/targets/html.ts";
 import type { AssignNode, Spec, SpecNode } from "../src/types.ts";
-import { serveDirectory, type StaticServer } from "./server.ts";
 import { schemas } from "./schemas.ts";
 
+const served = servedWorkspace();
 const PAGE_NAME = "groups.e2e.html";
 const workspaceRoot = fileURLToPath(new URL("../../../", import.meta.url));
-
-let browser: Browser;
-let server: StaticServer;
 
 type Row = Record<string, string | undefined>;
 
@@ -24,7 +21,7 @@ const study = (
   name: "between-subjects",
   data:
     method === "balanced"
-      ? { save: "post", experiment_id: "testExperiment", endpoint: server.url, ...data }
+      ? { save: "post", experiment_id: "testExperiment", endpoint: served.server.url, ...data }
       : undefined,
   timeline: [
     {
@@ -60,14 +57,7 @@ async function run(spec: Spec, expected = "group") {
   return { shown, rows, errors };
 }
 
-beforeAll(async () => {
-  server = await serveDirectory(workspaceRoot);
-  browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL ?? "chrome" });
-}, 120_000);
-
-afterAll(async () => {
-  await browser?.close();
-  await server?.close();
+afterAll(() => {
   rmSync(join(workspaceRoot, PAGE_NAME), { force: true });
 });
 
@@ -84,53 +74,55 @@ describe("a study that splits participants between groups", () => {
   }, 120_000);
 
   it("takes the group the data service hands out", async () => {
-    server.nextCondition = 1;
+    served.server.nextCondition = 1;
     const second = await run(study("balanced"));
     expect(second.rows.find((row) => row.tag)?.tag).toBe("beta");
 
-    server.nextCondition = 0;
+    served.server.nextCondition = 0;
     const first = await run(study("balanced"));
     expect(first.rows.find((row) => row.tag)?.tag).toBe("alpha");
   }, 120_000);
 
   it("stops with a message, running no group and uploading nothing, when no group comes back", async () => {
-    server.failConditions = true;
-    const uploadsBefore = server.uploads.length;
+    served.server.failConditions = true;
+    const uploadsBefore = served.server.uploads.length;
     try {
       const { shown, rows, errors } = await run(study("balanced"), "cannot start");
       expect(errors).toEqual([]);
       expect(shown).toContain("let the researcher know");
       expect(shown).not.toContain("group");
       expect(rows.filter((row) => row.tag)).toEqual([]);
-      expect(server.uploads.length).toBe(uploadsBefore);
+      expect(served.server.uploads.length).toBe(uploadsBefore);
     } finally {
-      server.failConditions = false;
+      served.server.failConditions = false;
     }
   }, 120_000);
 
   it("keeps its message on screen once a study that saves as it goes has uploaded", async () => {
-    server.failConditions = true;
-    const uploadsBefore = server.uploads.length;
+    served.server.failConditions = true;
+    const uploadsBefore = served.server.uploads.length;
     try {
       const { html } = await emitHtml(compileSpec(study("balanced", { stream: true }), schemas), {
         title: "between-subjects",
         base: "/node_modules",
       });
       writeFileSync(join(workspaceRoot, PAGE_NAME), html);
-      const page = await browser.newPage();
-      await page.goto(`${server.url}/${PAGE_NAME}`);
-      await expect.poll(() => server.uploads.length, { timeout: 20_000 }).toBe(uploadsBefore + 1);
+      const page = await served.browser.newPage();
+      await page.goto(`${served.server.url}/${PAGE_NAME}`);
+      await expect
+        .poll(() => served.server.uploads.length, { timeout: 20_000 })
+        .toBe(uploadsBefore + 1);
       await expect
         .poll(() => page.locator("#jspsych-content").innerText(), { timeout: 5_000 })
         .toContain("cannot start");
       await page.close();
     } finally {
-      server.failConditions = false;
+      served.server.failConditions = false;
     }
   }, 120_000);
 
   it("draws a group in the browser instead when the study opts in", async () => {
-    server.failConditions = true;
+    served.server.failConditions = true;
     try {
       const { rows, errors } = await run(study("balanced", { condition_fallback: "random" }));
       expect(errors).toEqual([]);
@@ -138,7 +130,7 @@ describe("a study that splits participants between groups", () => {
       expect(seen).toHaveLength(1);
       expect(["alpha", "beta"]).toContain(seen[0].tag);
     } finally {
-      server.failConditions = false;
+      served.server.failConditions = false;
     }
   }, 120_000);
 });
@@ -170,7 +162,7 @@ const looped = (node: AssignNode): Spec => ({
   name: "split-in-a-loop",
   data:
     node.method === "balanced"
-      ? { save: "post", experiment_id: "testExperiment", endpoint: server.url }
+      ? { save: "post", experiment_id: "testExperiment", endpoint: served.server.url }
       : undefined,
   timeline: [
     {
@@ -189,10 +181,10 @@ async function openStudy(spec: Spec) {
     { title: spec.name, base: "/node_modules" },
   );
   writeFileSync(join(workspaceRoot, PAGE_NAME), html);
-  const page = await browser.newPage();
+  const page = await served.browser.newPage();
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto(`${server.url}/${PAGE_NAME}`);
+  await page.goto(`${served.server.url}/${PAGE_NAME}`);
   const rowsSoFar = async () =>
     (await page.evaluate(() => window.studioExperiment.jsPsych.data.get().values())) as Row[];
   const practiceRows = async () => (await rowsSoFar()).filter((row) => row.tag === "practice");
@@ -241,17 +233,17 @@ describe("a split that a loop runs more than once", () => {
   }, 120_000);
 
   it("asks the data service once, and keeps the group it handed out", async () => {
-    server.nextCondition = 2;
-    const before = server.conditionRequests;
+    served.server.nextCondition = 2;
+    const before = served.server.conditionRequests;
     const { rows, errors } = await runPasses(looped(groupSplit("balanced")));
     expect(errors).toEqual([]);
-    expect(server.conditionRequests - before).toBe(1);
+    expect(served.server.conditionRequests - before).toBe(1);
     expect(rows.map((row) => row.condition)).toEqual(PASSES.map(() => "gamma"));
   }, 120_000);
 
   it("keeps two splits' groups apart, even when they share group names", async () => {
-    server.nextCondition = 0;
-    const before = server.conditionRequests;
+    served.server.nextCondition = 0;
+    const before = served.server.conditionRequests;
     const inner = split("dose", "balanced", [
       ["treatment", [scored("inner treatment group")]],
       ["control", [scored("inner control group")]],
@@ -262,7 +254,7 @@ describe("a split that a loop runs more than once", () => {
     ]);
     const { rows, errors } = await runPasses(looped(outer));
     expect(errors).toEqual([]);
-    expect(server.conditionRequests - before).toBe(2);
+    expect(served.server.conditionRequests - before).toBe(2);
     expect(rows.map((row) => row.stimulus)).toEqual(
       PASSES.map(() => "<p>inner treatment group</p>"),
     );
@@ -272,8 +264,8 @@ describe("a split that a loop runs more than once", () => {
   }, 120_000);
 
   it("still stops on the first pass when no group comes back", async () => {
-    server.failConditions = true;
-    const before = server.conditionRequests;
+    served.server.failConditions = true;
+    const before = served.server.conditionRequests;
     try {
       const { page, errors, practiceRows } = await openStudy(looped(groupSplit("balanced")));
       await expect
@@ -283,9 +275,9 @@ describe("a split that a loop runs more than once", () => {
       await page.close();
       expect(errors).toEqual([]);
       expect(rows).toEqual([]);
-      expect(server.conditionRequests - before).toBe(1);
+      expect(served.server.conditionRequests - before).toBe(1);
     } finally {
-      server.failConditions = false;
+      served.server.failConditions = false;
     }
   }, 120_000);
 });
