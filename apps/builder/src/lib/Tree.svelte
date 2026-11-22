@@ -41,7 +41,7 @@
   const isSelected = (childPath: NodePath) => project.selection?.join(".") === childPath.join(".");
 </script>
 
-<ul>
+<ul class:nested={path.length > 0}>
   {#each nodes as node, index (node)}
     <AddStep {path} {index} variant="between" />
     {@const childPath = [...path, index]}
@@ -108,7 +108,46 @@
   ul {
     list-style: none;
     margin: 0;
-    padding-left: 0.9rem;
+    padding-inline-start: var(--step-indent);
+  }
+  /*
+   * Depth was carried by indentation alone, which asks someone to measure whitespace to see what
+   * sits inside what. These are a file tree's guides: a trunk down each nested list and a tick
+   * across to every row on it, so a glance follows the structure.
+   *
+   * Drawn per row rather than as a border on the list, because the trunk has to stop at the last
+   * row instead of running on past it to the add-step control below.
+   */
+  .nested > li {
+    position: relative;
+  }
+  .nested > li::before,
+  .nested > li::after {
+    content: "";
+    position: absolute;
+    border-color: var(--line);
+    border-style: solid;
+    border-width: 0;
+    pointer-events: none;
+  }
+  /* The trunk, carrying on past this row's own children to reach the next sibling. */
+  .nested > li::before {
+    inset-inline-start: calc(var(--step-indent) / -2);
+    top: calc(var(--step-slot-height) * -1);
+    bottom: 0;
+    border-inline-start-width: 1px;
+  }
+  /* On the last row it stops at the tick, closing the branch. */
+  .nested > li:last-of-type::before {
+    bottom: auto;
+    height: calc(var(--step-slot-height) + var(--step-tick));
+  }
+  /* The tick across to the row. */
+  .nested > li::after {
+    inset-inline-start: calc(var(--step-indent) / -2);
+    top: var(--step-tick);
+    width: calc(var(--step-indent) / 2 - 0.05rem);
+    border-block-start-width: 1px;
   }
   .row {
     display: flex;
@@ -139,9 +178,9 @@
     color: var(--caution);
   }
   .group {
-    border-left: 2px solid var(--line);
-    margin-left: 0.5rem;
-    padding-left: 0.2rem;
+    border-inline-start: 1px solid var(--line);
+    margin-inline-start: 0.5rem;
+    padding-inline-start: 0.2rem;
   }
   .group-name {
     font-size: 0.75rem;

@@ -1,6 +1,12 @@
 /* The flow diagram gives each kind of block a hue of its own so it reads at a glance, on a fill
    mixed from the brand's raised paper so it follows the theme. */
 :root {
+  /* The timeline's own measurements. Shared because Tree draws its guides through the gaps
+     AddStep leaves between rows, so the two cannot be allowed to drift apart. */
+  --step-indent: 0.9rem;
+  --step-slot-height: 0.9rem;
+  /* Where a row's tick meets its trunk: the middle of the row's first line. */
+  --step-tick: 0.72rem;
   --flow-block-stroke: var(--flow-block);
   --flow-loop-stroke: var(--flow-loop);
   --flow-split-stroke: var(--caution);

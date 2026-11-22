@@ -136,7 +136,7 @@
 
 <style>
   .slot-row {
-    height: 0.9rem;
+    height: var(--step-slot-height);
     display: flex;
     align-items: center;
   }
