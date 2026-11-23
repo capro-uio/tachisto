@@ -38,6 +38,11 @@ jobs:
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          # Name the repository rather than leaving it to be inferred. A token carries a project
+          # of its own, which wins when the CLI is given no slug: that is how two weeks of this
+          # repository's coverage went to another one, accepted every time and dropped at
+          # processing, while the upload step stayed green (#146).
+          slug: ${{ github.repository }}
           files: packages/compiler/coverage/lcov.info,packages/schemas/coverage/lcov.info,packages/cli/coverage/lcov.info,packages/mcp/coverage/lcov.info,apps/builder/coverage/lcov.info,apps/site/coverage/lcov.info
           fail_ci_if_error: true
 
