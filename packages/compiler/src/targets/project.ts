@@ -14,6 +14,7 @@ import {
 import { formatSource } from "../format.ts";
 import {
   datasetDescription,
+  GENERATOR_DOI,
   generatorLabel,
   sourceHeader,
   type MetadataOptions,
@@ -95,6 +96,8 @@ function readme(spec: Spec, contents: ReadmeContents, options: MetadataOptions) 
   return `# ${spec.name}
 
 Built with ${generatorLabel(options.tachisto)}.
+
+Cite the tool in a methods section: ${GENERATOR_DOI}
 
 ## Running it
 

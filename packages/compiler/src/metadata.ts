@@ -12,6 +12,18 @@ const UNRELEASED = "0.0.0";
 
 export const GENERATOR = "Tachisto";
 export const GENERATOR_URL = "https://github.com/capro-uio/tachisto";
+
+/**
+ * Tachisto's concept DOI, which always resolves to the newest release.
+ *
+ * The concept rather than a version DOI, because Zenodo mints a release's own DOI only once the
+ * GitHub release is published — after the code being compiled here was built, so a build cannot
+ * know its own. Together with `softwareVersion` this still names one release exactly, which is
+ * what a methods section needs.
+ *
+ * Pinned against codemeta.json by a test, so the two cannot drift.
+ */
+export const GENERATOR_DOI = "https://doi.org/10.5281/zenodo.23669791";
 export const JSPSYCH_URL = "https://www.jspsych.org/";
 
 /**
@@ -126,6 +138,7 @@ export function datasetDescription(spec: Spec, columns: string[], options: Metad
         "@type": "SoftwareApplication",
         name: GENERATOR,
         url: GENERATOR_URL,
+        identifier: GENERATOR_DOI,
         ...(tachisto ? { softwareVersion: tachisto } : {}),
       },
       {
@@ -154,6 +167,7 @@ export function sourceHeader(spec: Spec, options: MetadataOptions) {
     ` *\n` +
     ` * Built with ${generatorLabel(options.tachisto)} on ${date}, for jsPsych ${options.jspsych}.\n` +
     ` * ${GENERATOR_URL}\n` +
+    ` * Cite the tool: ${GENERATOR_DOI}\n` +
     ` *\n` +
     ` * This file is generated from experiment.json. Open that file in the builder to keep\n` +
     ` * editing there, or edit this file directly and keep it as the experiment from now on.\n` +

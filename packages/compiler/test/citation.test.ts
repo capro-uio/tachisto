@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { citationCff, toYaml, zenodoMetadata } from "../src/citation.ts";
+import { GENERATOR_DOI, datasetDescription, sourceHeader } from "../src/metadata.ts";
+import type { Spec } from "../src/types.ts";
 import type { Codemeta } from "../src/codemeta.ts";
 
 const readRoot = (file: string) =>
@@ -144,5 +146,30 @@ describe("the committed citation files", () => {
     const committed = JSON.parse(readRoot("codemeta.json")) as Codemeta;
     expect(JSON.parse(readRoot(".zenodo.json"))).toEqual(zenodoMetadata(committed));
     expect(readRoot("CITATION.cff")).toBe(toYaml(citationCff(committed)));
+  });
+});
+
+describe("the DOI a generated study cites", () => {
+  const spec: Spec = { name: "a study", timeline: [] };
+  const options = { jspsych: "8.2.1", tachisto: "0.0.3", generatedAt: "2026-11-23" };
+
+  // The DOI is written into the compiler because an installed copy has no repository to read it
+  // from. That is only safe while it still matches the one the repository publishes.
+  it("is the one codemeta.json gives, so the two cannot drift apart", () => {
+    const committed = JSON.parse(readRoot("codemeta.json")) as { identifier: string };
+    expect(GENERATOR_DOI).toBe(committed.identifier);
+  });
+
+  it("reaches the dataset's provenance, beside the version it belongs to", () => {
+    const [tachisto] = datasetDescription(spec, ["rt"], options).isBasedOn;
+    expect(tachisto).toMatchObject({
+      name: "Tachisto",
+      identifier: GENERATOR_DOI,
+      softwareVersion: "0.0.3",
+    });
+  });
+
+  it("reaches the top of the generated experiment, where someone reading it will look", () => {
+    expect(sourceHeader(spec, options)).toContain(GENERATOR_DOI);
   });
 });
