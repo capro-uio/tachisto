@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { GENERATOR_DOI } from "../src/metadata.ts";
 import manifest from "../package.json" with { type: "json" };
 import { dataPipeSetupMarkdown } from "../src/datapipe-setup.ts";
 import type { DatasetDescription } from "../src/metadata.ts";
@@ -204,6 +205,8 @@ describe("downloading the whole project", () => {
     expect(files["experiment.js"]).toContain("Built with Tachisto 1.2.0 on 2026-10-16");
     expect(files["index.html"]).toContain('<meta name="generator" content="Tachisto 1.2.0" />');
     expect(files["README.md"]).toContain("Built with Tachisto 1.2.0.");
+    // Whoever writes the paper reads this file, so the tool's DOI belongs where they will find it.
+    expect(files["README.md"]).toContain(GENERATOR_DOI);
   });
 
   it("lists the platform's id parameter among the columns", async () => {

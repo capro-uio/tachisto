@@ -37,6 +37,7 @@ export {
   dataColumns,
   datasetDescription,
   GENERATOR,
+  GENERATOR_DOI,
   GENERATOR_URL,
   GENERATOR_VERSION,
   generatorLabel,
