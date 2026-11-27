@@ -107,12 +107,12 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
       - name: Take the packages the build job made
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: packages
           path: packages
       - name: Take the release notes the build job wrote
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: release-notes
           path: ${{ runner.temp }}
